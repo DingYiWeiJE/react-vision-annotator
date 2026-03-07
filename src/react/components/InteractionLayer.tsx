@@ -173,6 +173,7 @@ function renderPreview(
         stroke={color}
         strokeWidth={strokeWidth}
         dash={[6, 3]}
+        listening={false}
       />
     )
   }
@@ -192,6 +193,7 @@ function renderPreview(
         strokeWidth={strokeWidth}
         dash={[6, 3]}
         fill="rgba(24,144,255,0.1)"
+        listening={false}
       />
     )
   }
@@ -208,6 +210,7 @@ function renderPreview(
         stroke={color}
         strokeWidth={strokeWidth}
         dash={[6, 3]}
+        listening={false}
       />
     )
   }
