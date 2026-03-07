@@ -13,12 +13,12 @@ interface RectShapeViewProps {
 }
 
 const HANDLE_SIZE = 8
+const HANDLE_HIT_STROKE_WIDTH = 10
 
 function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: RectShapeViewProps) {
   const [hovered, setHovered] = useState(false)
 
-  const isMoveTool = tool === ToolMode.MOVE
-  const canDrag = selected || isMoveTool
+  const isSelectTool = tool === ToolMode.SELECT
 
   const x = Math.min(data.startPoint.x, data.endPoint.x)
   const y = Math.min(data.startPoint.y, data.endPoint.y)
@@ -45,25 +45,25 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
 
   const handleMouseEnter = useCallback((e: { target: { getStage: () => { container: () => HTMLDivElement } | null } }) => {
     setHovered(true)
-    if (isMoveTool) {
+    if (isSelectTool) {
       const stage = e.target.getStage()
       if (stage) {
         stage.container().style.cursor = 'grab'
       }
     }
-  }, [isMoveTool])
+  }, [isSelectTool])
 
   const handleMouseLeave = useCallback((e: { target: { getStage: () => { container: () => HTMLDivElement } | null } }) => {
     setHovered(false)
-    if (isMoveTool) {
+    if (isSelectTool) {
       const stage = e.target.getStage()
       if (stage) {
         stage.container().style.cursor = ''
       }
     }
-  }, [isMoveTool])
+  }, [isSelectTool])
 
-  const handleHandleDrag = useCallback((handleIndex: number, e: { target: { x: () => number; y: () => number } }) => {
+  const handleHandleDrag = useCallback((handleIndex: number, e: { target: { x: (v?: number) => number; y: (v?: number) => number } }) => {
     const hx = e.target.x()
     const hy = e.target.y()
 
@@ -93,12 +93,21 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
     }
 
     onResize(data.id, { x: newStartX, y: newStartY }, { x: newEndX, y: newEndY })
+
+    // 修复控制点脱离线框 bug：将控制点位置重置到计算后的正确位置
+    const correctedX = Math.min(newStartX, newEndX)
+    const correctedY = Math.min(newStartY, newEndY)
+    const correctedW = Math.abs(newEndX - newStartX)
+    const correctedH = Math.abs(newEndY - newStartY)
+    const correctPos = getHandlePositions(correctedX, correctedY, correctedW, correctedH)[handleIndex]
+    e.target.x(correctPos.x)
+    e.target.y(correctPos.y)
   }, [data, onResize])
 
   const handles = selected ? getHandlePositions(x, y, width, height) : []
 
-  // MOVE 模式 hover 时显示半透明填充
-  const hoverFill = isMoveTool && hovered ? data.color + '30' : undefined
+  // SELECT 模式 hover 时显示半透明填充
+  const hoverFill = isSelectTool && hovered ? data.color + '30' : undefined
 
   return (
     <Group>
@@ -110,7 +119,7 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
         fill={hoverFill}
         stroke={hovered ? lightenColor(data.color) : data.color}
         strokeWidth={hovered ? data.strokeWidth + 1 : data.strokeWidth}
-        draggable={canDrag}
+        draggable={isSelectTool}
         onClick={handleClick}
         onTap={handleClick}
         onDragEnd={handleDragEnd}
@@ -126,6 +135,7 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
           fill="white"
           stroke={data.color}
           strokeWidth={1}
+          hitStrokeWidth={HANDLE_HIT_STROKE_WIDTH}
           draggable
           onDragMove={(e) => handleHandleDrag(i, e)}
         />

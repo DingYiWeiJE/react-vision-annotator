@@ -62,11 +62,10 @@ function InteractionLayer({
 
   const handleMouseDown = useCallback((e: { evt: MouseEvent }) => {
     if (e.evt.button !== 0) return
-    if (tool === ToolMode.SELECT) return
 
     const pos = screenToImage(e.evt.offsetX, e.evt.offsetY)
     setDrawing({ startPoint: pos, currentPoint: pos })
-  }, [tool, screenToImage])
+  }, [screenToImage])
 
   const handleMouseMove = useCallback((e: { evt: MouseEvent }) => {
     if (!drawing) return
@@ -105,7 +104,7 @@ function InteractionLayer({
           strokeWidth,
         })
       }
-    } else if (tool === ToolMode.BOX_SELECT) {
+    } else if (tool === ToolMode.SELECT) {
       const x = Math.min(startPoint.x, currentPoint.x)
       const y = Math.min(startPoint.y, currentPoint.y)
       const w = Math.abs(currentPoint.x - startPoint.x)
@@ -135,11 +134,9 @@ function InteractionLayer({
     return () => window.removeEventListener('mouseup', handleWindowMouseUp)
   }, [drawing, finishDrawing])
 
-  const isDrawingTool = tool !== ToolMode.SELECT && tool !== ToolMode.MOVE
-
   return (
-    <Layer listening={isDrawingTool}>
-      {/* 透明交互区域，仅在绘制模式下拦截事件 */}
+    <Layer>
+      {/* 透明交互区域 */}
       <Rect
         width={stageWidth}
         height={stageHeight}
@@ -160,7 +157,7 @@ function renderPreview(
 ): React.ReactNode {
   const { startPoint, currentPoint } = drawing
 
-  if (tool === ToolMode.DRAW_RECT || tool === ToolMode.BOX_SELECT) {
+  if (tool === ToolMode.DRAW_RECT) {
     const x = Math.min(startPoint.x, currentPoint.x)
     const y = Math.min(startPoint.y, currentPoint.y)
     const width = Math.abs(currentPoint.x - startPoint.x)
@@ -171,10 +168,28 @@ function renderPreview(
         y={y}
         width={width}
         height={height}
-        stroke={tool === ToolMode.BOX_SELECT ? '#1890ff' : color}
+        stroke={color}
         strokeWidth={strokeWidth}
         dash={[6, 3]}
-        fill={tool === ToolMode.BOX_SELECT ? 'rgba(24,144,255,0.1)' : undefined}
+      />
+    )
+  }
+
+  if (tool === ToolMode.SELECT) {
+    const x = Math.min(startPoint.x, currentPoint.x)
+    const y = Math.min(startPoint.y, currentPoint.y)
+    const width = Math.abs(currentPoint.x - startPoint.x)
+    const height = Math.abs(currentPoint.y - startPoint.y)
+    return (
+      <Rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        stroke="#1890ff"
+        strokeWidth={strokeWidth}
+        dash={[6, 3]}
+        fill="rgba(24,144,255,0.1)"
       />
     )
   }

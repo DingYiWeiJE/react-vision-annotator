@@ -2,23 +2,36 @@ import type { BoundingBox } from '../../types/annotation'
 import type { BaseShape } from '../shapes/BaseShape'
 import type { AnnotationManager } from '../annotation/AnnotationManager'
 
+type SelectionListener = (ids: string[]) => void
+
 export class SelectionManager {
   private selectedIds: Set<string> = new Set()
   private annotationManager: AnnotationManager
+  private listener: SelectionListener | null = null
 
   constructor(annotationManager: AnnotationManager) {
     this.annotationManager = annotationManager
+  }
+
+  subscribe(listener: SelectionListener): void {
+    this.listener = listener
+  }
+
+  private notify(): void {
+    this.listener?.([...this.selectedIds])
   }
 
   select(ids: string[]): void {
     this.clearSelectedState()
     this.selectedIds = new Set(ids)
     this.applySelectedState()
+    this.notify()
   }
 
   clear(): void {
     this.clearSelectedState()
     this.selectedIds.clear()
+    this.notify()
   }
 
   getSelected(): BaseShape[] {
@@ -44,6 +57,7 @@ export class SelectionManager {
       }
     }
     this.applySelectedState()
+    this.notify()
   }
 
   private isFullyContained(shapeBounds: BoundingBox, box: BoundingBox): boolean {

@@ -1,4 +1,4 @@
-import React, { useCallback, useImperativeHandle, forwardRef, useState, useRef, useEffect } from 'react'
+import React, { useCallback, useImperativeHandle, forwardRef, useState } from 'react'
 import { Stage, Layer } from 'react-konva'
 import type { AnnotationData, Point } from '../../types/annotation'
 import { ToolMode } from '../../core/tools/ToolController'
@@ -118,18 +118,38 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       }
     }, [engine])
 
-    // MOVE 模式下画布默认光标设为 grab
-    const stageRef = useRef<{ container: () => HTMLDivElement } | null>(null)
-    useEffect(() => {
-      const container = stageRef.current?.container()
-      if (!container) return
-      container.style.cursor = currentTool === ToolMode.MOVE ? 'grab' : ''
-      return () => { container.style.cursor = '' }
-    }, [currentTool])
+    const isSelectMode = currentTool === ToolMode.SELECT
+
+    const interactionLayer = !readOnly && (
+      <InteractionLayer
+        tool={currentTool}
+        stageWidth={stageSize.width}
+        stageHeight={stageSize.height}
+        color={color}
+        strokeWidth={strokeWidth}
+        screenToImage={screenToImage}
+        onAddShape={handleAddShape}
+        onSelectByBox={engine.selectByBox}
+        onClearSelection={engine.clearSelection}
+        onDeleteSelected={handleDeleteSelected}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+      />
+    )
+
+    const shapeLayer = (
+      <ShapeLayer
+        shapes={engine.shapes}
+        selectedIds={engine.selectedIds}
+        tool={currentTool}
+        onSelect={handleSelect}
+        onDragEnd={handleDragEnd}
+        onResize={handleResize}
+      />
+    )
 
     return (
       <Stage
-        ref={stageRef as React.RefObject<never>}
         width={stageSize.width}
         height={stageSize.height}
         scaleX={engine.viewport.scale}
@@ -142,29 +162,18 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         <Layer>
           <ImageLayer src={image} onLoad={handleImageLoad} />
         </Layer>
-        <ShapeLayer
-          shapes={engine.shapes}
-          selectedIds={engine.selectionManager.getSelectedIds()}
-          tool={currentTool}
-          onSelect={handleSelect}
-          onDragEnd={handleDragEnd}
-          onResize={handleResize}
-        />
-        {!readOnly && (
-          <InteractionLayer
-            tool={currentTool}
-            stageWidth={stageSize.width}
-            stageHeight={stageSize.height}
-            color={color}
-            strokeWidth={strokeWidth}
-            screenToImage={screenToImage}
-            onAddShape={handleAddShape}
-            onSelectByBox={engine.selectByBox}
-            onClearSelection={engine.clearSelection}
-            onDeleteSelected={handleDeleteSelected}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-          />
+        {/* SELECT 模式：InteractionLayer 在下，ShapeLayer 在上（标注可交互，空白区域穿透到 InteractionLayer）
+            DRAW 模式：ShapeLayer 在下，InteractionLayer 在上（拦截所有绘制事件） */}
+        {isSelectMode ? (
+          <>
+            {interactionLayer}
+            {shapeLayer}
+          </>
+        ) : (
+          <>
+            {shapeLayer}
+            {interactionLayer}
+          </>
         )}
       </Stage>
     )

@@ -9,6 +9,7 @@ import { ShapeFactory } from '../../core/shapes/ShapeFactory'
 
 interface AnnotationEngine {
   shapes: AnnotationData[]
+  selectedIds: string[]
   viewport: ViewportState
   tool: ToolMode
   annotationManager: AnnotationManager
@@ -41,6 +42,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
   const viewportController = useRef(new ViewportController()).current
 
   const [shapes, setShapes] = useState<AnnotationData[]>(initialAnnotations ?? [])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [viewport, setViewport] = useState<ViewportState>({
     scale: 1, rotation: 0, offsetX: 0, offsetY: 0,
   })
@@ -53,6 +55,9 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     })
     viewportController.subscribe((state) => {
       setViewport(state)
+    })
+    selectionManager.subscribe((ids) => {
+      setSelectedIds(ids)
     })
     if (initialAnnotations?.length) {
       annotationManager.load(initialAnnotations)
@@ -121,6 +126,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
 
   return {
     shapes,
+    selectedIds,
     viewport,
     tool,
     annotationManager,
