@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Layer, Rect, Circle as KonvaCircle } from 'react-konva'
 import type { AnnotationData, Point } from '../../types/annotation'
 import { ToolMode } from '../../core/tools/ToolController'
@@ -34,6 +34,12 @@ function InteractionLayer({
   onDeleteSelected, onUndo, onRedo,
 }: InteractionLayerProps) {
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
+  const drawingRef = useRef<DrawingState | null>(null)
+
+  // 同步 ref，让 window 级别的事件回调能拿到最新的 drawing
+  useEffect(() => {
+    drawingRef.current = drawing
+  }, [drawing])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -55,6 +61,7 @@ function InteractionLayer({
   }, [onDeleteSelected, onClearSelection, onUndo, onRedo])
 
   const handleMouseDown = useCallback((e: { evt: MouseEvent }) => {
+    if (e.evt.button !== 0) return
     if (tool === ToolMode.SELECT) return
 
     const pos = screenToImage(e.evt.offsetX, e.evt.offsetY)
@@ -68,10 +75,8 @@ function InteractionLayer({
     setDrawing({ ...drawing, currentPoint: pos })
   }, [drawing, screenToImage])
 
-  const handleMouseUp = useCallback(() => {
-    if (!drawing) return
-
-    const { startPoint, currentPoint } = drawing
+  const finishDrawing = useCallback((drawState: DrawingState) => {
+    const { startPoint, currentPoint } = drawState
 
     if (tool === ToolMode.DRAW_RECT) {
       const width = Math.abs(currentPoint.x - startPoint.x)
@@ -109,7 +114,26 @@ function InteractionLayer({
     }
 
     setDrawing(null)
-  }, [drawing, tool, color, strokeWidth, onAddShape, onSelectByBox])
+  }, [tool, color, strokeWidth, onAddShape, onSelectByBox])
+
+  const handleMouseUp = useCallback(() => {
+    if (!drawing) return
+    finishDrawing(drawing)
+  }, [drawing, finishDrawing])
+
+  // window 级别监听 mouseup，防止鼠标移出画布后松开导致绘制卡住
+  useEffect(() => {
+    if (!drawing) return
+
+    const handleWindowMouseUp = () => {
+      const current = drawingRef.current
+      if (current) {
+        finishDrawing(current)
+      }
+    }
+    window.addEventListener('mouseup', handleWindowMouseUp)
+    return () => window.removeEventListener('mouseup', handleWindowMouseUp)
+  }, [drawing, finishDrawing])
 
   const handleStageClick = useCallback(() => {
     if (tool === ToolMode.SELECT) {
