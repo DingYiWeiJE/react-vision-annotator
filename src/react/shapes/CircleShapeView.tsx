@@ -89,6 +89,14 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
     e.target.y(handlePositions[handleIndex].y)
   }, [data, cx, cy, onResize])
 
+  const handleWheel = useCallback((e: { evt: WheelEvent }) => {
+    if (!selected || !isSelectTool) return
+    e.evt.preventDefault()
+    const scale = e.evt.deltaY < 0 ? 1.05 : 0.95
+    const newRadius = radius * scale
+    onResize(data.id, data.startPoint, { x: cx + newRadius, y: cy })
+  }, [selected, isSelectTool, data, cx, cy, radius, onResize])
+
   const handles = (selected && !isDragging) ? [
     { x: cx, y: cy - radius },     // top
     { x: cx + radius, y: cy },     // right
@@ -115,6 +123,7 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onWheel={handleWheel}
       />
       {handles.map((pos, i) => (
         <KonvaCircle

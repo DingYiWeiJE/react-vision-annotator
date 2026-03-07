@@ -106,6 +106,25 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
     e.target.y(correctPos.y)
   }, [data, onResize])
 
+  const handleWheel = useCallback((e: { evt: WheelEvent }) => {
+    if (!selected || !isSelectTool) return
+    e.evt.preventDefault()
+    const scale = e.evt.deltaY < 0 ? 1.05 : 0.95
+    const cx = x + width / 2
+    const cy = y + height / 2
+    const newW = width * scale
+    const newH = height * scale
+    const newX = cx - newW / 2
+    const newY = cy - newH / 2
+    // 保持 startPoint/endPoint 的相对顺序
+    const sx = data.startPoint.x <= data.endPoint.x
+    const sy = data.startPoint.y <= data.endPoint.y
+    onResize(data.id,
+      { x: sx ? newX : newX + newW, y: sy ? newY : newY + newH },
+      { x: sx ? newX + newW : newX, y: sy ? newY + newH : newY },
+    )
+  }, [selected, isSelectTool, data, x, y, width, height, onResize])
+
   const handles = (selected && !isDragging) ? getHandlePositions(x, y, width, height) : []
 
   // SELECT 模式 hover 时显示半透明填充
@@ -128,6 +147,7 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onWheel={handleWheel}
       />
       {handles.map((pos, i) => (
         <KonvaCircle
