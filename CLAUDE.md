@@ -108,3 +108,17 @@ export type { ViewportState }      from './core/viewport/ViewportController'
 - **AnnotationData**：仅存 `startPoint` / `endPoint`，`x/y/width/height/radius` 均为派生值，按需计算
 - **状态通知**：Core 写操作后通过 `AnnotationManager.subscribe()` 回调通知 React 层重渲染
 - **Undo/Redo**：每次写操作前由 `HistoryManager.push()` 保存快照
+
+---
+
+## 文档维护规则（代码变更时必须检查）
+
+需求变更或代码变动时，按影响范围同步更新对应文档：
+
+| 变动类型 | 需要更新的文档 |
+| -------- | -------------- |
+| 架构约束、目录结构、对外 API 出口 | `CLAUDE.md` |
+| 数据模型、核心接口、组件结构 | `projectDesign.md` |
+| 编码规范新增或调整 | `docs/CONVENTIONS.md` |
+| 项目结构、开发流程 | `docs/DEVELOPMENT.md` |
+| 公共 API（Props / Ref / 类型 / 枚举） | `docs/USAGE.md` |
