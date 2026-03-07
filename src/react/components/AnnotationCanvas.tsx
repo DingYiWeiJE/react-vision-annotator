@@ -119,6 +119,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     }, [engine])
 
     const isSelectMode = currentTool === ToolMode.SELECT
+    const [isDrawing, setIsDrawing] = useState(false)
 
     const interactionLayer = !readOnly && (
       <InteractionLayer
@@ -134,6 +135,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         onDeleteSelected={handleDeleteSelected}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        onDrawingChange={setIsDrawing}
       />
     )
 
@@ -142,6 +144,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         shapes={engine.shapes}
         selectedIds={engine.selectedIds}
         tool={currentTool}
+        listening={!(isSelectMode && isDrawing)}
         onSelect={handleSelect}
         onDragEnd={handleDragEnd}
         onResize={handleResize}

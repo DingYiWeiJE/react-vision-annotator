@@ -9,18 +9,19 @@ interface ShapeLayerProps {
   shapes: AnnotationData[]
   selectedIds: string[]
   tool: ToolMode
+  listening?: boolean
   onSelect: (id: string) => void
   onDragEnd: (id: string, startPoint: Point, endPoint: Point) => void
   onResize: (id: string, startPoint: Point, endPoint: Point) => void
 }
 
-function ShapeLayer({ shapes, selectedIds, tool, onSelect, onDragEnd, onResize }: ShapeLayerProps) {
+function ShapeLayer({ shapes, selectedIds, tool, listening = true, onSelect, onDragEnd, onResize }: ShapeLayerProps) {
   const selectedSet = new Set(selectedIds)
 
   const visibleShapes = shapes.filter(s => s.visible !== false)
 
   return (
-    <Layer>
+    <Layer listening={listening}>
       {visibleShapes.map(shape => {
         const isSelected = selectedSet.has(shape.id)
         switch (shape.type) {

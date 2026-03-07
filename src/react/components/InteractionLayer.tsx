@@ -16,6 +16,7 @@ interface InteractionLayerProps {
   onDeleteSelected: () => void
   onUndo: () => void
   onRedo: () => void
+  onDrawingChange?: (isDrawing: boolean) => void
 }
 
 interface DrawingState {
@@ -31,7 +32,7 @@ function generateId(): string {
 function InteractionLayer({
   tool, stageWidth, stageHeight, color, strokeWidth,
   screenToImage, onAddShape, onSelectByBox, onClearSelection,
-  onDeleteSelected, onUndo, onRedo,
+  onDeleteSelected, onUndo, onRedo, onDrawingChange,
 }: InteractionLayerProps) {
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const drawingRef = useRef<DrawingState | null>(null)
@@ -39,6 +40,7 @@ function InteractionLayer({
   // 同步 ref，让 window 级别的事件回调能拿到最新的 drawing
   useEffect(() => {
     drawingRef.current = drawing
+    onDrawingChange?.(drawing !== null)
   }, [drawing])
 
   useEffect(() => {
