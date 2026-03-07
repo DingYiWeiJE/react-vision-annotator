@@ -1,0 +1,16 @@
+export const enum ToolMode {
+  SELECT = 'SELECT',
+  DRAW_RECT = 'DRAW_RECT',
+  DRAW_CIRCLE = 'DRAW_CIRCLE',
+  BOX_SELECT = 'BOX_SELECT',
+}
+
+export class ToolController {
+  private _mode: ToolMode = ToolMode.SELECT
+
+  get mode(): ToolMode { return this._mode }
+
+  setMode(mode: ToolMode): void {
+    this._mode = mode
+  }
+}
