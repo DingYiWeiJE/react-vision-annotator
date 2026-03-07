@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react'
 import { Circle as KonvaCircle, Group } from 'react-konva'
 import type { AnnotationData, Point } from '../../types/annotation'
+import { ToolMode } from '../../core/tools/ToolController'
 
 interface CircleShapeViewProps {
   data: AnnotationData
   selected: boolean
+  tool: ToolMode
   onSelect: (id: string) => void
   onDragEnd: (id: string, startPoint: Point, endPoint: Point) => void
   onResize: (id: string, startPoint: Point, endPoint: Point) => void
@@ -12,8 +14,11 @@ interface CircleShapeViewProps {
 
 const HANDLE_SIZE = 8
 
-function CircleShapeView({ data, selected, onSelect, onDragEnd, onResize }: CircleShapeViewProps) {
+function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: CircleShapeViewProps) {
   const [hovered, setHovered] = useState(false)
+
+  const isMoveTool = tool === ToolMode.MOVE
+  const canDrag = selected || isMoveTool
 
   const cx = data.startPoint.x
   const cy = data.startPoint.y
@@ -39,6 +44,26 @@ function CircleShapeView({ data, selected, onSelect, onDragEnd, onResize }: Circ
     onSelect(data.id)
   }, [data.id, onSelect])
 
+  const handleMouseEnter = useCallback((e: { target: { getStage: () => { container: () => HTMLDivElement } | null } }) => {
+    setHovered(true)
+    if (isMoveTool) {
+      const stage = e.target.getStage()
+      if (stage) {
+        stage.container().style.cursor = 'grab'
+      }
+    }
+  }, [isMoveTool])
+
+  const handleMouseLeave = useCallback((e: { target: { getStage: () => { container: () => HTMLDivElement } | null } }) => {
+    setHovered(false)
+    if (isMoveTool) {
+      const stage = e.target.getStage()
+      if (stage) {
+        stage.container().style.cursor = ''
+      }
+    }
+  }, [isMoveTool])
+
   const handleHandleDrag = useCallback((handleIndex: number, e: { target: { x: () => number; y: () => number } }) => {
     const hx = e.target.x()
     const hy = e.target.y()
@@ -59,20 +84,24 @@ function CircleShapeView({ data, selected, onSelect, onDragEnd, onResize }: Circ
     { x: cx - radius, y: cy },     // left
   ] : []
 
+  // MOVE 模式 hover 时显示半透明填充
+  const hoverFill = isMoveTool && hovered ? data.color + '30' : undefined
+
   return (
     <Group>
       <KonvaCircle
         x={cx}
         y={cy}
         radius={radius}
+        fill={hoverFill}
         stroke={hovered ? lightenColor(data.color) : data.color}
         strokeWidth={hovered ? data.strokeWidth + 1 : data.strokeWidth}
-        draggable={selected}
+        draggable={canDrag}
         onClick={handleClick}
         onTap={handleClick}
         onDragEnd={handleDragEnd}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       />
       {handles.map((pos, i) => (
         <KonvaCircle

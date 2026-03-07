@@ -1,4 +1,4 @@
-import React, { useCallback, useImperativeHandle, forwardRef, useState } from 'react'
+import React, { useCallback, useImperativeHandle, forwardRef, useState, useRef, useEffect } from 'react'
 import { Stage, Layer } from 'react-konva'
 import type { AnnotationData, Point } from '../../types/annotation'
 import { ToolMode } from '../../core/tools/ToolController'
@@ -111,8 +111,25 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       deleteSelected: handleDeleteSelected,
     }), [engine, onChange, handleDeleteSelected])
 
+    const handleStageClick = useCallback((e: { target: { getStage: () => unknown } }) => {
+      // 仅当点击的是 Stage 本身（空白区域）时清除选中
+      if (e.target === e.target.getStage()) {
+        engine.clearSelection()
+      }
+    }, [engine])
+
+    // MOVE 模式下画布默认光标设为 grab
+    const stageRef = useRef<{ container: () => HTMLDivElement } | null>(null)
+    useEffect(() => {
+      const container = stageRef.current?.container()
+      if (!container) return
+      container.style.cursor = currentTool === ToolMode.MOVE ? 'grab' : ''
+      return () => { container.style.cursor = '' }
+    }, [currentTool])
+
     return (
       <Stage
+        ref={stageRef as React.RefObject<never>}
         width={stageSize.width}
         height={stageSize.height}
         scaleX={engine.viewport.scale}
@@ -120,6 +137,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         rotation={engine.viewport.rotation}
         offsetX={-engine.viewport.offsetX}
         offsetY={-engine.viewport.offsetY}
+        onClick={handleStageClick}
       >
         <Layer>
           <ImageLayer src={image} onLoad={handleImageLoad} />
@@ -127,6 +145,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         <ShapeLayer
           shapes={engine.shapes}
           selectedIds={engine.selectionManager.getSelectedIds()}
+          tool={currentTool}
           onSelect={handleSelect}
           onDragEnd={handleDragEnd}
           onResize={handleResize}

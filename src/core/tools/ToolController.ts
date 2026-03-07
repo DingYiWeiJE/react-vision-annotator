@@ -1,5 +1,6 @@
 export const enum ToolMode {
   SELECT = 'SELECT',
+  MOVE = 'MOVE',
   DRAW_RECT = 'DRAW_RECT',
   DRAW_CIRCLE = 'DRAW_CIRCLE',
   BOX_SELECT = 'BOX_SELECT',

@@ -135,22 +135,17 @@ function InteractionLayer({
     return () => window.removeEventListener('mouseup', handleWindowMouseUp)
   }, [drawing, finishDrawing])
 
-  const handleStageClick = useCallback(() => {
-    if (tool === ToolMode.SELECT) {
-      onClearSelection()
-    }
-  }, [tool, onClearSelection])
+  const isDrawingTool = tool !== ToolMode.SELECT && tool !== ToolMode.MOVE
 
   return (
-    <Layer>
-      {/* 透明交互区域 */}
+    <Layer listening={isDrawingTool}>
+      {/* 透明交互区域，仅在绘制模式下拦截事件 */}
       <Rect
         width={stageWidth}
         height={stageHeight}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onClick={handleStageClick}
       />
       {drawing && renderPreview(drawing, tool, color, strokeWidth)}
     </Layer>
