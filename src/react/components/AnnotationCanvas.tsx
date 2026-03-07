@@ -1,4 +1,4 @@
-import React, { useCallback, useImperativeHandle, forwardRef, useState } from 'react'
+import React, { useCallback, useImperativeHandle, forwardRef, useState, useEffect } from 'react'
 import { Stage, Layer } from 'react-konva'
 import type { AnnotationData, Point } from '../../types/annotation'
 import { ToolMode } from '../../core/tools/ToolController'
@@ -120,6 +120,13 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     const isSelectMode = currentTool === ToolMode.SELECT
     const [isDrawing, setIsDrawing] = useState(false)
+
+    // 切换离开 SELECT 模式时清除选中
+    useEffect(() => {
+      if (!isSelectMode) {
+        engine.clearSelection()
+      }
+    }, [isSelectMode])
 
     const interactionLayer = !readOnly && (
       <InteractionLayer
