@@ -17,6 +17,7 @@ const HANDLE_HIT_STROKE_WIDTH = 10
 
 function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: RectShapeViewProps) {
   const [hovered, setHovered] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const isSelectTool = tool === ToolMode.SELECT
 
@@ -26,6 +27,7 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
   const height = Math.abs(data.endPoint.y - data.startPoint.y)
 
   const handleDragEnd = useCallback((e: { target: { x: () => number; y: () => number } }) => {
+    setIsDragging(false)
     const newX = e.target.x()
     const newY = e.target.y()
     const dx = newX - x
@@ -104,7 +106,7 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
     e.target.y(correctPos.y)
   }, [data, onResize])
 
-  const handles = selected ? getHandlePositions(x, y, width, height) : []
+  const handles = (selected && !isDragging) ? getHandlePositions(x, y, width, height) : []
 
   // SELECT 模式 hover 时显示半透明填充
   const hoverFill = isSelectTool && hovered ? data.color + '30' : undefined
@@ -122,6 +124,7 @@ function RectShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: 
         draggable={isSelectTool}
         onClick={handleClick}
         onTap={handleClick}
+        onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

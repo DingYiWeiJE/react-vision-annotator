@@ -17,6 +17,7 @@ const HANDLE_HIT_STROKE_WIDTH = 10
 
 function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: CircleShapeViewProps) {
   const [hovered, setHovered] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const isSelectTool = tool === ToolMode.SELECT
 
@@ -27,6 +28,7 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
   const radius = Math.sqrt(dx * dx + dy * dy)
 
   const handleDragEnd = useCallback((e: { target: { x: () => number; y: () => number } }) => {
+    setIsDragging(false)
     const newCx = e.target.x()
     const newCy = e.target.y()
     const moveDx = newCx - cx
@@ -87,7 +89,7 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
     e.target.y(handlePositions[handleIndex].y)
   }, [data, cx, cy, onResize])
 
-  const handles = selected ? [
+  const handles = (selected && !isDragging) ? [
     { x: cx, y: cy - radius },     // top
     { x: cx + radius, y: cy },     // right
     { x: cx, y: cy + radius },     // bottom
@@ -109,6 +111,7 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
         draggable={isSelectTool}
         onClick={handleClick}
         onTap={handleClick}
+        onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
