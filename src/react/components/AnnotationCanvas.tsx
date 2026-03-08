@@ -148,7 +148,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         if (e.defaultPrevented) return
         e.preventDefault()
         const factor = e.deltaY < 0 ? 1.1 : 0.9
-        engine.viewportController.zoomBy(factor)
+        const rect = container.getBoundingClientRect()
+        engine.viewportController.zoomAt(factor, e.clientX - rect.left, e.clientY - rect.top)
       }
 
       const onMouseDown = (e: MouseEvent) => {

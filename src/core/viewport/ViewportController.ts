@@ -37,6 +37,19 @@ export class ViewportController {
     this.notify()
   }
 
+  /** 以屏幕坐标 (sx, sy) 为中心缩放，缩放后该点对应的图像位置不变 */
+  zoomAt(factor: number, sx: number, sy: number): void {
+    const oldScale = this._state.scale
+    const newScale = Math.min(Math.max(oldScale * factor, this.MIN_SCALE), this.MAX_SCALE)
+    // Konva 变换：screenPos = (imagePos + offsetX) * scale
+    // imagePos = screenPos / scale - offsetX（缩放前后保持不变）
+    // newOffsetX = screenPos / newScale - imagePos = screenPos / newScale - screenPos / oldScale + oldOffsetX
+    this._state.offsetX += sx / newScale - sx / oldScale
+    this._state.offsetY += sy / newScale - sy / oldScale
+    this._state.scale = newScale
+    this.notify()
+  }
+
   rotate(deg: number): void {
     this._state.rotation = (this._state.rotation + deg) % 360
     this.notify()
