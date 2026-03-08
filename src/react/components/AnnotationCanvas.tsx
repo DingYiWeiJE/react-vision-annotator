@@ -15,8 +15,6 @@ interface AnnotationCanvasProps {
   strokeWidth?: number
   color?: string
   readOnly?: boolean
-  width?: number
-  height?: number
   onChange?: (annotations: AnnotationData[]) => void
 }
 
@@ -40,14 +38,25 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       strokeWidth = 2,
       color = '#ff0000',
       readOnly = false,
-      width = 800,
-      height = 600,
       onChange,
     } = props
 
     const engine = useAnnotationEngine(annotations)
-    const [stageSize, setStageSize] = useState({ width, height })
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [stageSize, setStageSize] = useState({ width: 800, height: 600 })
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+
+    // 监听容器尺寸变化，Stage 跟随容器大小
+    useEffect(() => {
+      const el = containerRef.current
+      if (!el) return
+      const ro = new ResizeObserver(([entry]) => {
+        const { width: w, height: h } = entry.contentRect
+        if (w > 0 && h > 0) setStageSize({ width: w, height: h })
+      })
+      ro.observe(el)
+      return () => ro.disconnect()
+    }, [])
 
     const currentTool = readOnly ? ToolMode.SELECT : (externalTool ?? engine.tool)
 
@@ -96,9 +105,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     }, [engine])
 
     const handleImageLoad = useCallback((imgWidth: number, imgHeight: number) => {
-      setStageSize({ width: width ?? imgWidth, height: height ?? imgHeight })
       setImageSize({ width: imgWidth, height: imgHeight })
-    }, [width, height])
+    }, [])
 
     useImperativeHandle(ref, () => ({
       load: (data: AnnotationData[]) => {
@@ -255,6 +263,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     )
 
     return (
+      <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <Stage
         ref={stageRef}
         width={stageSize.width}
@@ -283,6 +292,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
           </>
         )}
       </Stage>
+      </div>
     )
   }
 )
