@@ -189,8 +189,11 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         if (!isPanning) return
         isPanning = false
         container.style.cursor = ''
-        // 拖拽结束，一次性同步到 ViewportController（触发一次 React 重渲染）
-        if (accumDx !== 0 || accumDy !== 0) {
+        if (accumDx === 0 && accumDy === 0) {
+          // 没有移动 → 纯点击空白区域，清除选中
+          engine.clearSelection()
+        } else {
+          // 拖拽结束，一次性同步到 ViewportController（触发一次 React 重渲染）
           engine.viewportController.pan(accumDx, accumDy)
         }
       }
