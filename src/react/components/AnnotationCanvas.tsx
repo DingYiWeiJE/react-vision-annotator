@@ -144,6 +144,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       let accumDy = 0
 
       const onWheel = (e: WheelEvent) => {
+        // 如果标注的 onWheel 已处理（选中状态下缩放标注），则不缩放画布
+        if (e.defaultPrevented) return
         e.preventDefault()
         const factor = e.deltaY < 0 ? 1.1 : 0.9
         engine.viewportController.zoomBy(factor)
