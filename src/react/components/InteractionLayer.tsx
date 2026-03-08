@@ -65,16 +65,19 @@ function InteractionLayer({
   const handleMouseDown = useCallback((e: { evt: MouseEvent }) => {
     if (e.evt.button !== 0) return
 
+    // SELECT 模式：仅 Ctrl+拖拽 触发框选，普通拖拽由 Stage 容器处理平移
+    if (tool === ToolMode.SELECT && !(e.evt.ctrlKey || e.evt.metaKey)) return
+
     const pos = screenToImage(e.evt.offsetX, e.evt.offsetY)
     setDrawing({ startPoint: pos, currentPoint: pos })
-  }, [screenToImage])
+  }, [screenToImage, tool])
 
   const handleMouseMove = useCallback((e: { evt: MouseEvent }) => {
-    if (!drawing) return
+    if (!drawingRef.current) return
 
     const pos = screenToImage(e.evt.offsetX, e.evt.offsetY)
-    setDrawing({ ...drawing, currentPoint: pos })
-  }, [drawing, screenToImage])
+    setDrawing({ startPoint: drawingRef.current.startPoint, currentPoint: pos })
+  }, [screenToImage])
 
   const finishDrawing = useCallback((drawState: DrawingState) => {
     const { startPoint, currentPoint } = drawState
@@ -118,9 +121,10 @@ function InteractionLayer({
   }, [tool, color, strokeWidth, onAddShape, onSelectByBox])
 
   const handleMouseUp = useCallback(() => {
-    if (!drawing) return
-    finishDrawing(drawing)
-  }, [drawing, finishDrawing])
+    const current = drawingRef.current
+    if (!current) return
+    finishDrawing(current)
+  }, [finishDrawing])
 
   // window 级别监听 mouseup，防止鼠标移出画布后松开导致绘制卡住
   useEffect(() => {

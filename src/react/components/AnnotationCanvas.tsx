@@ -1,5 +1,6 @@
-import React, { useCallback, useImperativeHandle, forwardRef, useState, useEffect } from 'react'
+import React, { useCallback, useImperativeHandle, forwardRef, useState, useEffect, useRef } from 'react'
 import { Stage, Layer } from 'react-konva'
+import type Konva from 'konva'
 import type { AnnotationData, Point } from '../../types/annotation'
 import { ToolMode } from '../../core/tools/ToolController'
 import { useAnnotationEngine } from '../hooks/useAnnotationEngine'
@@ -120,6 +121,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     const isSelectMode = currentTool === ToolMode.SELECT
     const [isDrawing, setIsDrawing] = useState(false)
+    const stageRef = useRef<Konva.Stage>(null)
 
     // 切换离开 SELECT 模式时清除选中
     useEffect(() => {
@@ -127,6 +129,84 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         engine.clearSelection()
       }
     }, [isSelectMode])
+
+    // Stage 容器级别处理平移和缩放（不受 Konva 坐标变换影响，图片移出屏幕也能操作）
+    useEffect(() => {
+      const stage = stageRef.current
+      const container = stage?.container()
+      if (!stage || !container) return
+
+      let isPanning = false
+      let lastX = 0
+      let lastY = 0
+      // 累积平移量，拖拽过程中直接操作 Konva 节点，不触发 React 重渲染
+      let accumDx = 0
+      let accumDy = 0
+
+      const onWheel = (e: WheelEvent) => {
+        e.preventDefault()
+        const factor = e.deltaY < 0 ? 1.1 : 0.9
+        engine.viewportController.zoomBy(factor)
+      }
+
+      const onMouseDown = (e: MouseEvent) => {
+        if (e.button !== 0) return
+        // Ctrl+拖拽 → 框选，不平移
+        if (e.ctrlKey || e.metaKey) return
+        // 只在 SELECT 模式下平移；DRAW 模式下由 InteractionLayer 处理绘制
+        if (currentTool !== ToolMode.SELECT) return
+
+        // 检查是否点击了可拖拽的标注（shapes 在 SELECT 模式下 draggable=true）
+        const rect = container.getBoundingClientRect()
+        const hit = stage.getIntersection({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+        if (hit && hit.draggable()) return
+
+        isPanning = true
+        lastX = e.clientX
+        lastY = e.clientY
+        accumDx = 0
+        accumDy = 0
+        container.style.cursor = 'grabbing'
+      }
+
+      const onMouseMove = (e: MouseEvent) => {
+        if (!isPanning) return
+        const dx = e.clientX - lastX
+        const dy = e.clientY - lastY
+        lastX = e.clientX
+        lastY = e.clientY
+        accumDx += dx
+        accumDy += dy
+        // 直接操作 Konva Stage 节点，跳过 React 重渲染
+        stage.offsetX(stage.offsetX() - dx)
+        stage.offsetY(stage.offsetY() - dy)
+        stage.batchDraw()
+      }
+
+      const onMouseUp = () => {
+        if (!isPanning) return
+        isPanning = false
+        container.style.cursor = ''
+        // 拖拽结束，一次性同步到 ViewportController（触发一次 React 重渲染）
+        if (accumDx !== 0 || accumDy !== 0) {
+          engine.viewportController.pan(accumDx, accumDy)
+        }
+      }
+
+      container.addEventListener('wheel', onWheel, { passive: false })
+      container.addEventListener('mousedown', onMouseDown)
+      container.addEventListener('mousemove', onMouseMove)
+      container.addEventListener('mouseup', onMouseUp)
+      window.addEventListener('mouseup', onMouseUp)
+
+      return () => {
+        container.removeEventListener('wheel', onWheel)
+        container.removeEventListener('mousedown', onMouseDown)
+        container.removeEventListener('mousemove', onMouseMove)
+        container.removeEventListener('mouseup', onMouseUp)
+        window.removeEventListener('mouseup', onMouseUp)
+      }
+    }, [engine, currentTool])
 
     const interactionLayer = !readOnly && (
       <InteractionLayer
@@ -160,6 +240,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     return (
       <Stage
+        ref={stageRef}
         width={stageSize.width}
         height={stageSize.height}
         scaleX={engine.viewport.scale}

@@ -32,6 +32,11 @@ export class ViewportController {
     this.notify()
   }
 
+  zoomBy(factor: number): void {
+    this._state.scale = Math.min(Math.max(this._state.scale * factor, this.MIN_SCALE), this.MAX_SCALE)
+    this.notify()
+  }
+
   rotate(deg: number): void {
     this._state.rotation = (this._state.rotation + deg) % 360
     this.notify()
