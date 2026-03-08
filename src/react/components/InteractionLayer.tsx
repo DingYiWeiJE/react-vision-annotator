@@ -201,10 +201,10 @@ function InteractionLayer({
 
   return (
     <Layer>
-      {/* 透明交互区域 */}
+      {/* 交互区域覆盖整个图片，而非画布显示区域 */}
       <Rect
-        width={stageWidth}
-        height={stageHeight}
+        width={imageWidth || stageWidth}
+        height={imageHeight || stageHeight}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
