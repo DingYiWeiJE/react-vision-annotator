@@ -47,6 +47,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     const engine = useAnnotationEngine(annotations)
     const [stageSize, setStageSize] = useState({ width, height })
+    const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
 
     const currentTool = readOnly ? ToolMode.SELECT : (externalTool ?? engine.tool)
 
@@ -96,6 +97,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     const handleImageLoad = useCallback((imgWidth: number, imgHeight: number) => {
       setStageSize({ width: width ?? imgWidth, height: height ?? imgHeight })
+      setImageSize({ width: imgWidth, height: imgHeight })
     }, [width, height])
 
     useImperativeHandle(ref, () => ({
@@ -219,6 +221,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         tool={currentTool}
         stageWidth={stageSize.width}
         stageHeight={stageSize.height}
+        imageWidth={imageSize.width}
+        imageHeight={imageSize.height}
         color={color}
         strokeWidth={strokeWidth}
         screenToImage={screenToImage}

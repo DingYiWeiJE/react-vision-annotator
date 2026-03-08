@@ -68,8 +68,8 @@ export class ViewportController {
 
   screenToImage(screenX: number, screenY: number): Point {
     return {
-      x: (screenX - this._state.offsetX) / this._state.scale,
-      y: (screenY - this._state.offsetY) / this._state.scale,
+      x: screenX / this._state.scale - this._state.offsetX,
+      y: screenY / this._state.scale - this._state.offsetY,
     }
   }
 
