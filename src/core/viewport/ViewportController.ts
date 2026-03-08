@@ -55,6 +55,24 @@ export class ViewportController {
     this.notify()
   }
 
+  /** 以屏幕坐标 (cx, cy) 为轴旋转，旋转后该屏幕点对应的图像位置不变 */
+  rotateAt(deg: number, cx: number, cy: number): void {
+    const oldRad = (this._state.rotation * Math.PI) / 180
+    const newRad = ((this._state.rotation + deg) * Math.PI) / 180
+    const s = this._state.scale
+
+    // R(-r) * (cx, cy) = (cx*cos(r) + cy*sin(r), -cx*sin(r) + cy*cos(r))
+    const oldX = cx * Math.cos(oldRad) + cy * Math.sin(oldRad)
+    const oldY = -cx * Math.sin(oldRad) + cy * Math.cos(oldRad)
+    const newX = cx * Math.cos(newRad) + cy * Math.sin(newRad)
+    const newY = -cx * Math.sin(newRad) + cy * Math.cos(newRad)
+
+    this._state.offsetX += (newX - oldX) / s
+    this._state.offsetY += (newY - oldY) / s
+    this._state.rotation = (this._state.rotation + deg) % 360
+    this.notify()
+  }
+
   pan(dx: number, dy: number): void {
     this._state.offsetX += dx
     this._state.offsetY += dy

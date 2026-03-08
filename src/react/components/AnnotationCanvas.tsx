@@ -108,7 +108,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       export: () => engine.exportJSON(),
       zoomIn: () => engine.zoomIn(),
       zoomOut: () => engine.zoomOut(),
-      rotate: (deg: number) => engine.rotate(deg),
+      rotate: (deg: number) => engine.viewportController.rotateAt(deg, stageSize.width / 2, stageSize.height / 2),
       reset: () => engine.reset(),
       clearSelection: () => engine.clearSelection(),
       deleteSelected: handleDeleteSelected,
@@ -180,11 +180,17 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         const dy = e.clientY - lastY
         lastX = e.clientX
         lastY = e.clientY
-        accumDx += dx
-        accumDy += dy
+        // 将屏幕空间 delta 反旋转到 offset 空间
+        const rad = (stage.rotation() * Math.PI) / 180
+        const cos = Math.cos(rad)
+        const sin = Math.sin(rad)
+        const odx = dx * cos + dy * sin
+        const ody = -dx * sin + dy * cos
+        accumDx += odx
+        accumDy += ody
         // 直接操作 Konva Stage 节点，跳过 React 重渲染
-        stage.offsetX(stage.offsetX() - dx)
-        stage.offsetY(stage.offsetY() - dy)
+        stage.offsetX(stage.offsetX() - odx)
+        stage.offsetY(stage.offsetY() - ody)
         stage.batchDraw()
       }
 
