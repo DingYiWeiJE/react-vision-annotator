@@ -48,6 +48,8 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
   const historyManager = useRef(new HistoryManager()).current
   const viewportController = useRef(new ViewportController()).current
   const drawingManager = useRef(new DrawingManager()).current
+  // 操作来源日志：追踪最近操作的是标注还是绘图，用于统一 undo/redo
+  const actionLogRef = useRef<('annotation' | 'drawing')[]>([])
 
   const [shapes, setShapes] = useState<AnnotationData[]>(initialAnnotations ?? [])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -83,14 +85,17 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
 
   const addShape = useCallback((data: AnnotationData) => {
     annotationManager.add(ShapeFactory.create(data))
+    actionLogRef.current.push('annotation')
   }, [])
 
   const removeShape = useCallback((id: string) => {
     annotationManager.remove(id)
+    actionLogRef.current.push('annotation')
   }, [])
 
   const updateShape = useCallback((data: AnnotationData) => {
     annotationManager.update(ShapeFactory.create(data))
+    actionLogRef.current.push('annotation')
   }, [])
 
   const selectByBox = useCallback((box: { x: number; y: number; width: number; height: number }) => {
@@ -111,20 +116,43 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
   const reset = useCallback(() => viewportController.reset(), [])
 
   const undo = useCallback(() => {
-    const currentSnapshot = annotationManager.export()
-    const snapshot = historyManager.undo()
-    if (snapshot) {
-      historyManager.pushToFuture(currentSnapshot)
-      annotationManager.load(snapshot)
+    const lastSource = actionLogRef.current[actionLogRef.current.length - 1]
+    if (lastSource === 'drawing' && drawingManager.canUndo()) {
+      drawingManager.undo()
+      actionLogRef.current.pop()
+    } else if (lastSource === 'annotation') {
+      const currentSnapshot = annotationManager.export()
+      const snapshot = historyManager.undo()
+      if (snapshot) {
+        historyManager.pushToFuture(currentSnapshot)
+        annotationManager.load(snapshot)
+        actionLogRef.current.pop()
+      }
+    } else if (drawingManager.canUndo()) {
+      drawingManager.undo()
+    } else {
+      const currentSnapshot = annotationManager.export()
+      const snapshot = historyManager.undo()
+      if (snapshot) {
+        historyManager.pushToFuture(currentSnapshot)
+        annotationManager.load(snapshot)
+      }
     }
   }, [])
 
   const redo = useCallback(() => {
-    const currentSnapshot = annotationManager.export()
-    const snapshot = historyManager.redo()
-    if (snapshot) {
-      historyManager.push(currentSnapshot)
-      annotationManager.load(snapshot)
+    // redo 按反向顺序恢复：优先检查绘图，再检查标注
+    if (drawingManager.canRedo()) {
+      drawingManager.redo()
+      actionLogRef.current.push('drawing')
+    } else {
+      const currentSnapshot = annotationManager.export()
+      const snapshot = historyManager.redo()
+      if (snapshot) {
+        historyManager.push(currentSnapshot)
+        annotationManager.load(snapshot)
+        actionLogRef.current.push('annotation')
+      }
     }
   }, [])
 
@@ -138,6 +166,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
 
   const addDrawingStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string) => {
     drawingManager.addStroke(type, points, brushSize, color)
+    actionLogRef.current.push('drawing')
   }, [])
 
   const loadDrawing = useCallback((data: DrawingData) => {
@@ -150,6 +179,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
 
   const clearDrawing = useCallback(() => {
     drawingManager.clear()
+    actionLogRef.current.push('drawing')
   }, [])
 
   return {

@@ -122,12 +122,14 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     const handleUndo = useCallback(() => {
       engine.undo()
       onChange?.(engine.exportJSON())
-    }, [engine, onChange])
+      onDrawingDataChange?.(engine.exportDrawing())
+    }, [engine, onChange, onDrawingDataChange])
 
     const handleRedo = useCallback(() => {
       engine.redo()
       onChange?.(engine.exportJSON())
-    }, [engine, onChange])
+      onDrawingDataChange?.(engine.exportDrawing())
+    }, [engine, onChange, onDrawingDataChange])
 
     const screenToImage = useCallback((x: number, y: number): Point => {
       return engine.viewportController.screenToImage(x, y)
