@@ -1,22 +1,25 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
-import type { AnnotationData, ViewportState } from '../../types/annotation'
+import type { AnnotationData, ViewportState, DrawingData } from '../../types/annotation'
 import { AnnotationManager } from '../../core/annotation/AnnotationManager'
 import { SelectionManager } from '../../core/selection/SelectionManager'
 import { ToolController, ToolMode } from '../../core/tools/ToolController'
 import { HistoryManager } from '../../core/history/HistoryManager'
 import { ViewportController } from '../../core/viewport/ViewportController'
 import { ShapeFactory } from '../../core/shapes/ShapeFactory'
+import { DrawingManager } from '../../core/drawing/DrawingManager'
 
 interface AnnotationEngine {
   shapes: AnnotationData[]
   selectedIds: string[]
   viewport: ViewportState
   tool: ToolMode
+  drawingData: DrawingData
   annotationManager: AnnotationManager
   selectionManager: SelectionManager
   toolController: ToolController
   historyManager: HistoryManager
   viewportController: ViewportController
+  drawingManager: DrawingManager
   setTool: (mode: ToolMode) => void
   addShape: (data: AnnotationData) => void
   removeShape: (id: string) => void
@@ -32,6 +35,10 @@ interface AnnotationEngine {
   redo: () => void
   load: (annotations: AnnotationData[]) => void
   exportJSON: () => AnnotationData[]
+  addDrawingStroke: (type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string) => void
+  loadDrawing: (data: DrawingData) => void
+  exportDrawing: () => DrawingData
+  clearDrawing: () => void
 }
 
 export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): AnnotationEngine {
@@ -40,6 +47,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
   const toolController = useRef(new ToolController()).current
   const historyManager = useRef(new HistoryManager()).current
   const viewportController = useRef(new ViewportController()).current
+  const drawingManager = useRef(new DrawingManager()).current
 
   const [shapes, setShapes] = useState<AnnotationData[]>(initialAnnotations ?? [])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -47,6 +55,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     scale: 1, rotation: 0, offsetX: 0, offsetY: 0,
   })
   const [tool, setToolState] = useState<ToolMode>(ToolMode.SELECT)
+  const [drawingData, setDrawingData] = useState<DrawingData>({ strokes: [], mosaicPixelSize: 10 })
 
   useEffect(() => {
     annotationManager.setHistoryManager(historyManager)
@@ -58,6 +67,9 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     })
     selectionManager.subscribe((ids) => {
       setSelectedIds(ids)
+    })
+    drawingManager.subscribe((data) => {
+      setDrawingData(data)
     })
     if (initialAnnotations?.length) {
       annotationManager.load(initialAnnotations)
@@ -124,16 +136,34 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     return annotationManager.export()
   }, [])
 
+  const addDrawingStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string) => {
+    drawingManager.addStroke(type, points, brushSize, color)
+  }, [])
+
+  const loadDrawing = useCallback((data: DrawingData) => {
+    drawingManager.load(data)
+  }, [])
+
+  const exportDrawing = useCallback((): DrawingData => {
+    return drawingManager.export()
+  }, [])
+
+  const clearDrawing = useCallback(() => {
+    drawingManager.clear()
+  }, [])
+
   return {
     shapes,
     selectedIds,
     viewport,
     tool,
+    drawingData,
     annotationManager,
     selectionManager,
     toolController,
     historyManager,
     viewportController,
+    drawingManager,
     setTool,
     addShape,
     removeShape,
@@ -149,5 +179,9 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     redo,
     load,
     exportJSON,
+    addDrawingStroke,
+    loadDrawing,
+    exportDrawing,
+    clearDrawing,
   }
 }

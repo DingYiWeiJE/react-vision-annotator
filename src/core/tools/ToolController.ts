@@ -2,6 +2,9 @@ export const enum ToolMode {
   SELECT = 'SELECT',
   DRAW_RECT = 'DRAW_RECT',
   DRAW_CIRCLE = 'DRAW_CIRCLE',
+  MOSAIC_DRAW = 'MOSAIC_DRAW',
+  BRUSH_DRAW = 'BRUSH_DRAW',
+  ERASER = 'ERASER',
 }
 
 export class ToolController {

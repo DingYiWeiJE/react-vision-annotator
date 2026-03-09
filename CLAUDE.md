@@ -44,15 +44,16 @@ src/
 │   ├─ selection/       # SelectionManager
 │   ├─ tools/           # ToolController（ToolMode 枚举）
 │   ├─ history/         # HistoryManager（Undo/Redo）
+│   ├─ drawing/         # DrawingManager（马赛克/画笔/擦除管理）
 │   └─ viewport/        # ViewportController
 │
 ├─ react/
-│   ├─ components/      # AnnotationCanvas, ImageLayer, ShapeLayer, InteractionLayer
+│   ├─ components/      # AnnotationCanvas, ImageLayer, ShapeLayer, InteractionLayer, DrawingLayer
 │   ├─ shapes/          # RectShapeView, CircleShapeView
 │   └─ hooks/           # useAnnotationEngine
 │
 ├─ types/
-│   └─ annotation.ts    # 所有公共类型（Point, AnnotationData, ViewportState...）
+│   └─ annotation.ts    # 所有公共类型（Point, AnnotationData, ViewportState, DrawingData, DrawingStroke...）
 │
 └─ index.ts             # 唯一公共出口
 ```
@@ -94,6 +95,8 @@ src/
 export { AnnotationCanvas }        from './react/components/AnnotationCanvas'
 export { ToolMode }                from './core/tools/ToolController'
 export type { AnnotationData }     from './types/annotation'
+export type { DrawingData }        from './types/annotation'
+export type { DrawingStroke }      from './types/annotation'
 export type { AnnotationCanvasRef }from './react/components/AnnotationCanvas'
 export type { ViewportState }      from './core/viewport/ViewportController'
 ```

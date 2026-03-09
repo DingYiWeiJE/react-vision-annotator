@@ -1,12 +1,13 @@
 import React, { useCallback, useImperativeHandle, forwardRef, useState, useEffect, useRef } from 'react'
 import { Stage, Layer } from 'react-konva'
 import type Konva from 'konva'
-import type { AnnotationData, Point } from '../../types/annotation'
+import type { AnnotationData, Point, DrawingData, DrawingStroke } from '../../types/annotation'
 import { ToolMode } from '../../core/tools/ToolController'
 import { useAnnotationEngine } from '../hooks/useAnnotationEngine'
 import { ImageLayer } from './ImageLayer'
 import { ShapeLayer } from './ShapeLayer'
 import { InteractionLayer } from './InteractionLayer'
+import { DrawingLayer, buildCompositeForExport } from './DrawingLayer'
 
 interface AnnotationCanvasProps {
   image: string
@@ -16,6 +17,12 @@ interface AnnotationCanvasProps {
   color?: string
   readOnly?: boolean
   onChange?: (annotations: AnnotationData[]) => void
+  drawingData?: DrawingData
+  mosaicPixelSize?: number
+  mosaicBrushSize?: number
+  brushSize?: number
+  eraserSize?: number
+  onDrawingChange?: (data: DrawingData) => void
 }
 
 interface AnnotationCanvasRef {
@@ -27,6 +34,10 @@ interface AnnotationCanvasRef {
   reset: () => void
   clearSelection: () => void
   deleteSelected: () => void
+  exportDrawingImage: () => Promise<Blob | null>
+  exportDrawingData: () => DrawingData
+  loadDrawingData: (data: DrawingData) => void
+  clearDrawing: () => void
 }
 
 const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
@@ -39,12 +50,19 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       color = '#ff0000',
       readOnly = false,
       onChange,
+      drawingData: initialDrawingData,
+      mosaicPixelSize = 10,
+      mosaicBrushSize = 20,
+      brushSize = 4,
+      eraserSize = 20,
+      onDrawingChange: onDrawingDataChange,
     } = props
 
     const engine = useAnnotationEngine(annotations)
     const containerRef = useRef<HTMLDivElement>(null)
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 })
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+    const imageRef = useRef<HTMLImageElement | null>(null)
 
     // 监听容器尺寸变化，Stage 跟随容器大小
     useEffect(() => {
@@ -59,6 +77,17 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     }, [])
 
     const currentTool = readOnly ? ToolMode.SELECT : (externalTool ?? engine.tool)
+
+    // 初始化绘图数据
+    const drawingInitialized = useRef(false)
+    useEffect(() => {
+      if (drawingInitialized.current) return
+      drawingInitialized.current = true
+      engine.drawingManager.setMosaicPixelSize(mosaicPixelSize)
+      if (initialDrawingData) {
+        engine.loadDrawing(initialDrawingData)
+      }
+    }, [])
 
     const handleAddShape = useCallback((data: AnnotationData) => {
       engine.addShape(data)
@@ -108,6 +137,19 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       setImageSize({ width: imgWidth, height: imgHeight })
     }, [])
 
+    const handleImageElement = useCallback((img: HTMLImageElement) => {
+      imageRef.current = img
+    }, [])
+
+    const handleFreehandStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], strokeColor?: string) => {
+      let size: number
+      if (type === 'mosaic') size = mosaicBrushSize
+      else if (type === 'brush') size = brushSize
+      else size = eraserSize
+      engine.addDrawingStroke(type, points, size, strokeColor)
+      onDrawingDataChange?.(engine.exportDrawing())
+    }, [engine, mosaicBrushSize, brushSize, eraserSize, onDrawingDataChange])
+
     useImperativeHandle(ref, () => ({
       load: (data: AnnotationData[]) => {
         engine.load(data)
@@ -120,7 +162,26 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       reset: () => engine.reset(),
       clearSelection: () => engine.clearSelection(),
       deleteSelected: handleDeleteSelected,
-    }), [engine, onChange, handleDeleteSelected])
+      exportDrawingImage: async (): Promise<Blob | null> => {
+        const img = imageRef.current
+        if (!img) return null
+        const data = engine.exportDrawing()
+        if (data.strokes.length === 0) return null
+        const resultCanvas = buildCompositeForExport(img, data.strokes, data.mosaicPixelSize)
+        return new Promise((resolve) => {
+          resultCanvas.toBlob((blob) => resolve(blob), 'image/png')
+        })
+      },
+      exportDrawingData: () => engine.exportDrawing(),
+      loadDrawingData: (data: DrawingData) => {
+        engine.loadDrawing(data)
+        onDrawingDataChange?.(data)
+      },
+      clearDrawing: () => {
+        engine.clearDrawing()
+        onDrawingDataChange?.(engine.exportDrawing())
+      },
+    }), [engine, onChange, handleDeleteSelected, onDrawingDataChange, stageSize])
 
     const handleStageClick = useCallback((e: { target: { getStage: () => unknown } }) => {
       // 仅当点击的是 Stage 本身（空白区域）时清除选中
@@ -131,6 +192,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     const isSelectMode = currentTool === ToolMode.SELECT
     const [isDrawing, setIsDrawing] = useState(false)
+    const [activeStroke, setActiveStroke] = useState<DrawingStroke | null>(null)
     const stageRef = useRef<Konva.Stage>(null)
 
     // 切换离开 SELECT 模式时清除选中
@@ -247,6 +309,11 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         onUndo={handleUndo}
         onRedo={handleRedo}
         onDrawingChange={setIsDrawing}
+        mosaicBrushSize={mosaicBrushSize}
+        brushSize={brushSize}
+        eraserSize={eraserSize}
+        onFreehandStroke={handleFreehandStroke}
+        onActiveStrokeChange={setActiveStroke}
       />
     )
 
@@ -276,10 +343,16 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         onClick={handleStageClick}
       >
         <Layer>
-          <ImageLayer src={image} onLoad={handleImageLoad} />
+          <ImageLayer src={image} onLoad={handleImageLoad} onImageElement={handleImageElement} />
+          <DrawingLayer
+            image={imageRef.current}
+            strokes={engine.drawingData.strokes}
+            mosaicPixelSize={engine.drawingData.mosaicPixelSize}
+            activeStroke={activeStroke}
+          />
         </Layer>
         {/* SELECT 模式：InteractionLayer 在下，ShapeLayer 在上（标注可交互，空白区域穿透到 InteractionLayer）
-            DRAW 模式：ShapeLayer 在下，InteractionLayer 在上（拦截所有绘制事件） */}
+            DRAW/FREEHAND 模式：ShapeLayer 在下，InteractionLayer 在上（拦截所有绘制事件） */}
         {isSelectMode ? (
           <>
             {interactionLayer}

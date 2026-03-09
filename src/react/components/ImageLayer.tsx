@@ -4,9 +4,10 @@ import { Image as KonvaImage } from 'react-konva'
 interface ImageLayerProps {
   src: string
   onLoad?: (width: number, height: number) => void
+  onImageElement?: (img: HTMLImageElement) => void
 }
 
-function ImageLayer({ src, onLoad }: ImageLayerProps) {
+function ImageLayer({ src, onLoad, onImageElement }: ImageLayerProps) {
   const [image, setImage] = useState<HTMLImageElement | null>(null)
   const prevSrc = useRef(src)
 
@@ -19,6 +20,7 @@ function ImageLayer({ src, onLoad }: ImageLayerProps) {
       if (prevSrc.current === src) {
         setImage(img)
         onLoad?.(img.naturalWidth, img.naturalHeight)
+        onImageElement?.(img)
       }
     }
     img.src = src

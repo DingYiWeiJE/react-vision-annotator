@@ -27,3 +27,16 @@ export interface BoundingBox {
   width: number
   height: number
 }
+
+export interface DrawingStroke {
+  id: string
+  type: 'mosaic' | 'brush' | 'erase'
+  points: number[]
+  brushSize: number
+  color?: string
+}
+
+export interface DrawingData {
+  strokes: DrawingStroke[]
+  mosaicPixelSize: number
+}
