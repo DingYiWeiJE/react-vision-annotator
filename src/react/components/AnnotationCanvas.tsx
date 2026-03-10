@@ -250,7 +250,13 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         // 检查是否点击了可拖拽的标注（shapes 在 SELECT 模式下 draggable=true）
         const rect = container.getBoundingClientRect()
         const hit = stage.getIntersection({ x: e.clientX - rect.left, y: e.clientY - rect.top })
-        if (hit && hit.draggable()) return
+        if (hit) {
+          let node = hit as { draggable: () => boolean; getParent: () => unknown } | null
+          while (node) {
+            if (node.draggable()) return
+            node = node.getParent() as typeof node | null
+          }
+        }
 
         isPanning = true
         lastX = e.clientX

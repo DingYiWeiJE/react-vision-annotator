@@ -33,6 +33,8 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
     const newCy = e.target.y()
     const moveDx = newCx - cx
     const moveDy = newCy - cy
+    e.target.x(cx)
+    e.target.y(cy)
     onDragEnd(data.id, {
       x: data.startPoint.x + moveDx,
       y: data.startPoint.y + moveDy,
@@ -109,22 +111,32 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
 
   return (
     <Group>
-      <KonvaCircle
+      <Group
         x={cx}
         y={cy}
-        radius={radius}
-        fill={hoverFill}
-        stroke={hovered ? lightenColor(data.color) : data.color}
-        strokeWidth={hovered ? data.strokeWidth + 1 : data.strokeWidth}
         draggable={isSelectTool}
-        onClick={handleClick}
-        onTap={handleClick}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onWheel={handleWheel}
-      />
+      >
+        <KonvaCircle
+          radius={radius}
+          fill={hoverFill}
+          stroke={hovered ? lightenColor(data.color) : data.color}
+          strokeWidth={hovered ? data.strokeWidth + 1 : data.strokeWidth}
+          onClick={handleClick}
+          onTap={handleClick}
+          onWheel={handleWheel}
+        />
+        <KonvaCircle
+          radius={HANDLE_SIZE / 2}
+          fill={data.color}
+          stroke={data.color}
+          strokeWidth={2}
+          listening={false}
+        />
+      </Group>
       {handles.map((pos, i) => (
         <KonvaCircle
           key={i}
