@@ -34,6 +34,8 @@ interface AnnotationCanvasRef {
   reset: () => void
   clearSelection: () => void
   deleteSelected: () => void
+  select: (ids: string[]) => void
+  focusOn: (id: string) => void
   exportDrawingImage: () => Promise<Blob | null>
   exportDrawingData: () => DrawingData
   loadDrawingData: (data: DrawingData) => void
@@ -163,6 +165,18 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       rotate: (deg: number) => engine.viewportController.rotateAt(deg, stageSize.width / 2, stageSize.height / 2),
       reset: () => engine.reset(),
       clearSelection: () => engine.clearSelection(),
+      select: (ids: string[]) => engine.selectionManager.select(ids),
+      focusOn: (id: string) => {
+        const shape = engine.shapes.find(s => s.id === id)
+        if (!shape) return
+        const cx = (shape.startPoint.x + shape.endPoint.x) / 2
+        const cy = (shape.startPoint.y + shape.endPoint.y) / 2
+        const { scale } = engine.viewportController.getState()
+        const newOffsetX = stageSize.width / (2 * scale) - cx
+        const newOffsetY = stageSize.height / (2 * scale) - cy
+        const current = engine.viewportController.getState()
+        engine.viewportController.pan(newOffsetX - current.offsetX, newOffsetY - current.offsetY)
+      },
       deleteSelected: handleDeleteSelected,
       exportDrawingImage: async (): Promise<Blob | null> => {
         const img = imageRef.current
