@@ -1,6 +1,6 @@
 {
   "name": "react-vision-annotator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "React image annotation SDK powered by Konva.js",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -23,11 +23,9 @@
   },
   "peerDependencies": {
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
-  "dependencies": {
-    "konva": "^9.3.0",
-    "react-konva": "^18.2.0"
+    "react-dom": "^18.0.0",
+    "konva": "^9.0.0",
+    "react-konva": "^18.0.0"
   },
   "devDependencies": {
     "@testing-library/react": "^14.0.0",

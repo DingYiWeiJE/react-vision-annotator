@@ -1,4 +1,4 @@
-export const enum ToolMode {
+export enum ToolMode {
   SELECT = 'SELECT',
   DRAW_RECT = 'DRAW_RECT',
   DRAW_CIRCLE = 'DRAW_CIRCLE',

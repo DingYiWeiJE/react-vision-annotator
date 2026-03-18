@@ -4,7 +4,9 @@
       "Bash(ls:*)",
       "Bash(pnpm install:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm test:*)"
+      "Bash(pnpm test:*)",
+      "Bash(npm whoami:*)",
+      "Bash(cd D:/code/react-vision-annotator && npm pack --dry-run 2>&1)"
     ]
   }
 }

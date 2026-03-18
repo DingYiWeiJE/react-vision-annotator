@@ -80,12 +80,14 @@ describe('ViewportController', () => {
     expect(vc.screenToImage(100, 200)).toEqual({ x: 100, y: 200 })
 
     // scale=2, offset=(50, 50)
+    // screenToImage(sx, sy) = sx / scale - offsetX
+    // = 150 / 2 - 50 = 25
     vc.zoomIn() // 1.1
-    for (let i = 0; i < 9; i++) vc.zoomIn() // 2.0
+    for (let i = 0; i < 9; i++) vc.zoomIn() // ~2.0
     vc.pan(50, 50)
     const point = vc.screenToImage(150, 150)
-    expect(point.x).toBeCloseTo(50)
-    expect(point.y).toBeCloseTo(50)
+    expect(point.x).toBeCloseTo(25)
+    expect(point.y).toBeCloseTo(25)
   })
 
   it('subscribe() 应在状态变更时收到通知', () => {
