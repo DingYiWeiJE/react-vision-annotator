@@ -19,11 +19,27 @@ function drawStrokePath(
   if (stroke.points.length < 2) return
 
   ctx.globalCompositeOperation = compositeOp
+  ctx.fillStyle = style
+
+  if (stroke.fillShape === 'rect') {
+    const [x1, y1, x2, y2] = stroke.points
+    ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
+    return
+  }
+
+  if (stroke.fillShape === 'circle') {
+    const [cx, cy, ex, ey] = stroke.points
+    const radius = Math.sqrt((ex - cx) ** 2 + (ey - cy) ** 2)
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+    ctx.fill()
+    return
+  }
+
   ctx.lineWidth = stroke.brushSize
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
   ctx.strokeStyle = style
-  ctx.fillStyle = style
 
   if (stroke.points.length === 2) {
     ctx.beginPath()
@@ -129,7 +145,10 @@ function DrawingLayer({ image, strokes, mosaicPixelSize, activeStroke }: Drawing
       konvaRef.current?.getLayer()?.batchDraw()
       return
     }
+    performance.mark('renderComposite:start')
     renderComposite(canvasRef.current, image, pixelated, allStrokes)
+    performance.mark('renderComposite:end')
+    performance.measure('renderComposite', 'renderComposite:start', 'renderComposite:end')
     konvaRef.current?.getLayer()?.batchDraw()
   }, [image, pixelated, allStrokes, hasContent])
 

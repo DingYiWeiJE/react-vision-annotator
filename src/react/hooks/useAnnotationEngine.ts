@@ -35,7 +35,7 @@ interface AnnotationEngine {
   redo: () => void
   load: (annotations: AnnotationData[]) => void
   exportJSON: () => AnnotationData[]
-  addDrawingStroke: (type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string) => void
+  addDrawingStroke: (type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string, fillShape?: 'rect' | 'circle') => void
   loadDrawing: (data: DrawingData) => void
   exportDrawing: () => DrawingData
   clearDrawing: () => void
@@ -164,8 +164,8 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     return annotationManager.export()
   }, [])
 
-  const addDrawingStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string) => {
-    drawingManager.addStroke(type, points, brushSize, color)
+  const addDrawingStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string, fillShape?: 'rect' | 'circle') => {
+    drawingManager.addStroke(type, points, brushSize, color, fillShape)
     actionLogRef.current.push('drawing')
   }, [])
 

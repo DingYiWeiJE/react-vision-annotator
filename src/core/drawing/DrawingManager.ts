@@ -22,12 +22,13 @@ export class DrawingManager {
     this.notify()
   }
 
-  addStroke(type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string): void {
+  addStroke(type: 'mosaic' | 'brush' | 'erase', points: number[], brushSize: number, color?: string, fillShape?: 'rect' | 'circle'): void {
     this.pushHistory()
     this._future = []
     this._strokes.push({
       id: generateStrokeId(),
       type,
+      fillShape,
       points,
       brushSize,
       color,

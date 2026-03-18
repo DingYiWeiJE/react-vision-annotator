@@ -22,7 +22,7 @@ interface InteractionLayerProps {
   mosaicBrushSize?: number
   brushSize?: number
   eraserSize?: number
-  onFreehandStroke?: (type: 'mosaic' | 'brush' | 'erase', points: number[], color?: string) => void
+  onFreehandStroke?: (type: 'mosaic' | 'brush' | 'erase', points: number[], color?: string, fillShape?: 'rect' | 'circle') => void
   onActiveStrokeChange?: (stroke: DrawingStroke | null) => void
 }
 
@@ -60,11 +60,26 @@ function isInsideImage(p: Point, w: number, h: number): boolean {
 }
 
 const FREEHAND_TOOLS = new Set([ToolMode.MOSAIC_DRAW, ToolMode.BRUSH_DRAW, ToolMode.ERASER])
+const FILL_TOOLS = new Set([
+  ToolMode.BRUSH_FILL_RECT, ToolMode.BRUSH_FILL_CIRCLE,
+  ToolMode.MOSAIC_FILL_RECT, ToolMode.MOSAIC_FILL_CIRCLE,
+])
+const FILL_RECT_TOOLS = new Set([ToolMode.BRUSH_FILL_RECT, ToolMode.MOSAIC_FILL_RECT])
+const FILL_CIRCLE_TOOLS = new Set([ToolMode.BRUSH_FILL_CIRCLE, ToolMode.MOSAIC_FILL_CIRCLE])
 
 function getFreehandStrokeType(tool: ToolMode): 'mosaic' | 'brush' | 'erase' {
   if (tool === ToolMode.MOSAIC_DRAW) return 'mosaic'
   if (tool === ToolMode.BRUSH_DRAW) return 'brush'
   return 'erase'
+}
+
+function getFillStrokeType(tool: ToolMode): 'mosaic' | 'brush' {
+  if (tool === ToolMode.MOSAIC_FILL_RECT || tool === ToolMode.MOSAIC_FILL_CIRCLE) return 'mosaic'
+  return 'brush'
+}
+
+function getFillShape(tool: ToolMode): 'rect' | 'circle' {
+  return FILL_CIRCLE_TOOLS.has(tool) ? 'circle' : 'rect'
 }
 
 function InteractionLayer({
@@ -78,6 +93,7 @@ function InteractionLayer({
   const drawingRef = useRef<DrawingState | null>(null)
   const freehandPointsRef = useRef<number[]>([])
   const isFreehandMode = FREEHAND_TOOLS.has(tool)
+  const isFillMode = FILL_TOOLS.has(tool)
 
   // 鼠标在图像上的位置（用于画笔光���）
   const [mousePos, setMousePos] = useState<Point | null>(null)
@@ -96,7 +112,6 @@ function InteractionLayer({
   useEffect(() => {
     if (!isFreehandMode) setMousePos(null)
   }, [isFreehandMode])
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -143,7 +158,7 @@ function InteractionLayer({
     }
 
     setDrawing({ startPoint: clamped, currentPoint: clamped })
-  }, [screenToImage, tool, imageWidth, imageHeight, isFreehandMode, buildActiveStroke, onActiveStrokeChange])
+  }, [screenToImage, tool, imageWidth, imageHeight, isFreehandMode, isFillMode, buildActiveStroke, onActiveStrokeChange])
 
   const handleMouseMove = useCallback((e: { evt: MouseEvent }) => {
     const pos = screenToImage(e.evt.offsetX, e.evt.offsetY)
@@ -166,16 +181,21 @@ function InteractionLayer({
     }
 
     let currentPoint: Point
-    if (tool === ToolMode.SELECT) {
-      currentPoint = pos
+    if (tool === ToolMode.SELECT || isFillMode) {
+      currentPoint = clampPoint(pos, imageWidth, imageHeight)
     } else if (tool === ToolMode.DRAW_CIRCLE) {
       currentPoint = clampCircleEndPoint(startPoint, pos, imageWidth, imageHeight)
     } else {
       currentPoint = clampPoint(pos, imageWidth, imageHeight)
     }
 
+    // 填充圆形：钳制端点使圆不超出图片
+    if (FILL_CIRCLE_TOOLS.has(tool)) {
+      currentPoint = clampCircleEndPoint(startPoint, pos, imageWidth, imageHeight)
+    }
+
     setDrawing({ startPoint, currentPoint })
-  }, [screenToImage, tool, imageWidth, imageHeight, isFreehandMode, buildActiveStroke, onActiveStrokeChange])
+  }, [screenToImage, tool, imageWidth, imageHeight, isFreehandMode, isFillMode, buildActiveStroke, onActiveStrokeChange])
 
   const finishDrawing = useCallback((drawState: DrawingState) => {
     if (isFreehandMode) {
@@ -187,6 +207,24 @@ function InteractionLayer({
       }
       freehandPointsRef.current = []
       onActiveStrokeChange?.(null)
+      setDrawing(null)
+      return
+    }
+
+    if (isFillMode) {
+      const { startPoint, currentPoint } = drawState
+      const fillShape = getFillShape(tool)
+      const strokeType = getFillStrokeType(tool)
+      const strokeColor = strokeType === 'brush' ? color : undefined
+      const points = [startPoint.x, startPoint.y, currentPoint.x, currentPoint.y]
+      if (fillShape === 'rect') {
+        const w = Math.abs(currentPoint.x - startPoint.x)
+        const h = Math.abs(currentPoint.y - startPoint.y)
+        if (w > 2 && h > 2) onFreehandStroke?.(strokeType, points, strokeColor, fillShape)
+      } else {
+        const radius = Math.sqrt((currentPoint.x - startPoint.x) ** 2 + (currentPoint.y - startPoint.y) ** 2)
+        if (radius > 2) onFreehandStroke?.(strokeType, points, strokeColor, fillShape)
+      }
       setDrawing(null)
       return
     }
@@ -244,7 +282,7 @@ function InteractionLayer({
     }
 
     setDrawing(null)
-  }, [tool, color, strokeWidth, imageWidth, imageHeight, onAddShape, onSelectByBox, isFreehandMode, onFreehandStroke, onActiveStrokeChange])
+  }, [tool, color, strokeWidth, imageWidth, imageHeight, onAddShape, onSelectByBox, isFreehandMode, isFillMode, onFreehandStroke, onActiveStrokeChange])
 
   const handleMouseUp = useCallback(() => {
     const current = drawingRef.current
@@ -341,6 +379,35 @@ function renderPreview(
       <KonvaCircle
         x={startPoint.x} y={startPoint.y} radius={radius}
         stroke={color} strokeWidth={strokeWidth} dash={[6, 3]} listening={false}
+      />
+    )
+  }
+
+  if (FILL_RECT_TOOLS.has(tool)) {
+    const x = Math.min(startPoint.x, currentPoint.x)
+    const y = Math.min(startPoint.y, currentPoint.y)
+    const width = Math.abs(currentPoint.x - startPoint.x)
+    const height = Math.abs(currentPoint.y - startPoint.y)
+    const fillColor = tool === ToolMode.BRUSH_FILL_RECT ? color + '66' : 'rgba(80,80,80,0.4)'
+    return (
+      <Rect
+        x={x} y={y} width={width} height={height}
+        stroke={tool === ToolMode.BRUSH_FILL_RECT ? color : '#888'}
+        strokeWidth={1} dash={[4, 3]} fill={fillColor} listening={false}
+      />
+    )
+  }
+
+  if (FILL_CIRCLE_TOOLS.has(tool)) {
+    const dx = currentPoint.x - startPoint.x
+    const dy = currentPoint.y - startPoint.y
+    const radius = Math.sqrt(dx * dx + dy * dy)
+    const fillColor = tool === ToolMode.BRUSH_FILL_CIRCLE ? color + '66' : 'rgba(80,80,80,0.4)'
+    return (
+      <KonvaCircle
+        x={startPoint.x} y={startPoint.y} radius={radius}
+        stroke={tool === ToolMode.BRUSH_FILL_CIRCLE ? color : '#888'}
+        strokeWidth={1} dash={[4, 3]} fill={fillColor} listening={false}
       />
     )
   }

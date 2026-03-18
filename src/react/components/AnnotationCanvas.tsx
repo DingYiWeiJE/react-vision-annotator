@@ -130,7 +130,6 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     }, [engine, onChange, onDrawingDataChange, onBeforeHistoryChange])
 
     const handleRedo = useCallback(() => {
-      console.log('出来吧神龙')
       onBeforeHistoryChange?.()
       engine.redo()
       onChange?.(engine.exportJSON())
@@ -165,12 +164,12 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       }
     }, [engine])
 
-    const handleFreehandStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], strokeColor?: string) => {
+    const handleFreehandStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], strokeColor?: string, fillShape?: 'rect' | 'circle') => {
       let size: number
       if (type === 'mosaic') size = mosaicBrushSize
       else if (type === 'brush') size = brushSize
       else size = eraserSize
-      engine.addDrawingStroke(type, points, size, strokeColor)
+      engine.addDrawingStroke(type, points, size, strokeColor, fillShape)
       onDrawingDataChange?.(engine.exportDrawing())
     }, [engine, mosaicBrushSize, brushSize, eraserSize, onDrawingDataChange])
 
