@@ -17,6 +17,8 @@ interface AnnotationCanvasProps {
   color?: string
   readOnly?: boolean
   onChange?: (annotations: AnnotationData[]) => void
+  onSelectionChange?: (ids: string[]) => void
+  onBeforeHistoryChange?: () => void
   drawingData?: DrawingData
   mosaicPixelSize?: number
   mosaicBrushSize?: number
@@ -28,6 +30,7 @@ interface AnnotationCanvasProps {
 interface AnnotationCanvasRef {
   load: (annotations: AnnotationData[]) => void
   export: () => AnnotationData[]
+  getSelected: () => AnnotationData[]
   zoomIn: () => void
   zoomOut: () => void
   rotate: (deg: number) => void
@@ -52,6 +55,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       color = '#ff0000',
       readOnly = false,
       onChange,
+      onSelectionChange,
+      onBeforeHistoryChange,
       drawingData: initialDrawingData,
       mosaicPixelSize = 10,
       mosaicBrushSize = 20,
@@ -96,10 +101,6 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       onChange?.(engine.exportJSON())
     }, [engine, onChange])
 
-    const handleSelect = useCallback((id: string) => {
-      engine.selectionManager.select([id])
-    }, [engine])
-
     const handleDragEnd = useCallback((id: string, startPoint: Point, endPoint: Point) => {
       const shape = engine.shapes.find(s => s.id === id)
       if (!shape) return
@@ -122,16 +123,19 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     }, [engine, onChange])
 
     const handleUndo = useCallback(() => {
+      onBeforeHistoryChange?.()
       engine.undo()
       onChange?.(engine.exportJSON())
       onDrawingDataChange?.(engine.exportDrawing())
-    }, [engine, onChange, onDrawingDataChange])
+    }, [engine, onChange, onDrawingDataChange, onBeforeHistoryChange])
 
     const handleRedo = useCallback(() => {
+      console.log('出来吧神龙')
+      onBeforeHistoryChange?.()
       engine.redo()
       onChange?.(engine.exportJSON())
       onDrawingDataChange?.(engine.exportDrawing())
-    }, [engine, onChange, onDrawingDataChange])
+    }, [engine, onChange, onDrawingDataChange, onBeforeHistoryChange])
 
     const screenToImage = useCallback((x: number, y: number): Point => {
       return engine.viewportController.screenToImage(x, y)
@@ -144,6 +148,22 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     const handleImageElement = useCallback((img: HTMLImageElement) => {
       imageRef.current = img
     }, [])
+
+    // 用 ref 保持 onSelectionChange 引用稳定，避免 useCallback 依赖重建
+    const onSelectionChangeRef = useRef(onSelectionChange)
+    onSelectionChangeRef.current = onSelectionChange
+
+    const handleSelect = useCallback((id: string) => {
+      engine.selectionManager.select([id])
+      onSelectionChangeRef.current?.(engine.selectionManager.getSelectedIds())
+    }, [engine])
+
+    const handleStageClick = useCallback((e: { target: { getStage: () => unknown } }) => {
+      if (e.target === e.target.getStage()) {
+        engine.clearSelection()
+        onSelectionChangeRef.current?.([])
+      }
+    }, [engine])
 
     const handleFreehandStroke = useCallback((type: 'mosaic' | 'brush' | 'erase', points: number[], strokeColor?: string) => {
       let size: number
@@ -160,12 +180,19 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         onChange?.(data)
       },
       export: () => engine.exportJSON(),
+      getSelected: () => engine.getSelected(),
       zoomIn: () => engine.zoomIn(),
       zoomOut: () => engine.zoomOut(),
       rotate: (deg: number) => engine.viewportController.rotateAt(deg, stageSize.width / 2, stageSize.height / 2),
       reset: () => engine.reset(),
-      clearSelection: () => engine.clearSelection(),
-      select: (ids: string[]) => engine.selectionManager.select(ids),
+      clearSelection: () => {
+        engine.clearSelection()
+        onSelectionChangeRef.current?.([])
+      },
+      select: (ids: string[]) => {
+        engine.selectionManager.select(ids)
+        onSelectionChangeRef.current?.(ids)
+      },
       focusOn: (id: string) => {
         const shape = engine.shapes.find(s => s.id === id)
         if (!shape) return
@@ -198,13 +225,6 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         onDrawingDataChange?.(engine.exportDrawing())
       },
     }), [engine, onChange, handleDeleteSelected, onDrawingDataChange, stageSize])
-
-    const handleStageClick = useCallback((e: { target: { getStage: () => unknown } }) => {
-      // 仅当点击的是 Stage 本身（空白区域）时清除选中
-      if (e.target === e.target.getStage()) {
-        engine.clearSelection()
-      }
-    }, [engine])
 
     const isSelectMode = currentTool === ToolMode.SELECT
     const [isDrawing, setIsDrawing] = useState(false)
@@ -325,7 +345,10 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         strokeWidth={strokeWidth}
         screenToImage={screenToImage}
         onAddShape={handleAddShape}
-        onSelectByBox={engine.selectByBox}
+        onSelectByBox={(box) => {
+          engine.selectByBox(box)
+          onSelectionChangeRef.current?.(engine.selectionManager.getSelectedIds())
+        }}
         onClearSelection={engine.clearSelection}
         onDeleteSelected={handleDeleteSelected}
         onUndo={handleUndo}
