@@ -13,7 +13,7 @@ interface RectShapeViewProps {
 
 const HANDLE_SIZE = 8;
 const HANDLE_HIT_STROKE_WIDTH = 10;
-const INACTIVE_HANDLE_OPACITY = 0.45;
+const INACTIVE_HANDLE_OPACITY = 1;
 const ACTIVE_HANDLE_OPACITY = 1;
 
 function RectShapeView({
@@ -251,9 +251,9 @@ function RectShapeView({
           x={pos.x}
           y={pos.y}
           radius={HANDLE_SIZE / 2}
-          fill={ctrlHeld ? "white" : data.color + "CC"}
+          fill="white"
           stroke={data.color}
-          strokeWidth={ctrlHeld ? 1 : 0}
+          strokeWidth={1}
           opacity={ctrlHeld ? ACTIVE_HANDLE_OPACITY : INACTIVE_HANDLE_OPACITY}
           hitStrokeWidth={HANDLE_HIT_STROKE_WIDTH}
           draggable={ctrlHeld}
