@@ -1,120 +1,192 @@
-import React, { useState, useCallback } from 'react'
-import { Circle as KonvaCircle, Group } from 'react-konva'
-import type { AnnotationData, Point } from '../../types/annotation'
-import { ToolMode } from '../../core/tools/ToolController'
+import React, { useState, useCallback } from "react";
+import { Circle as KonvaCircle, Group } from "react-konva";
+import type { AnnotationData, Point } from "../../types/annotation";
 
 interface CircleShapeViewProps {
-  data: AnnotationData
-  selected: boolean
-  tool: ToolMode
-  onSelect: (id: string) => void
-  onDragEnd: (id: string, startPoint: Point, endPoint: Point) => void
-  onResize: (id: string, startPoint: Point, endPoint: Point) => void
+  data: AnnotationData;
+  selected: boolean;
+  ctrlHeld: boolean;
+  onSelect: (id: string) => void;
+  onDragEnd: (id: string, startPoint: Point, endPoint: Point) => void;
+  onResize: (id: string, startPoint: Point, endPoint: Point) => void;
 }
 
-const HANDLE_SIZE = 8
-const HANDLE_HIT_STROKE_WIDTH = 10
+const HANDLE_SIZE = 8;
+const HANDLE_HIT_STROKE_WIDTH = 10;
+const INACTIVE_HANDLE_OPACITY = 0.45;
+const ACTIVE_HANDLE_OPACITY = 1;
 
-function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }: CircleShapeViewProps) {
-  const [hovered, setHovered] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
+function CircleShapeView({
+  data,
+  selected,
+  ctrlHeld,
+  onSelect,
+  onDragEnd,
+  onResize,
+}: CircleShapeViewProps) {
+  const [hovered, setHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const isSelectTool = tool === ToolMode.SELECT
+  const cx = data.startPoint.x;
+  const cy = data.startPoint.y;
+  const dx = data.endPoint.x - data.startPoint.x;
+  const dy = data.endPoint.y - data.startPoint.y;
+  const radius = Math.sqrt(dx * dx + dy * dy);
 
-  const cx = data.startPoint.x
-  const cy = data.startPoint.y
-  const dx = data.endPoint.x - data.startPoint.x
-  const dy = data.endPoint.y - data.startPoint.y
-  const radius = Math.sqrt(dx * dx + dy * dy)
-
-  const handleDragEnd = useCallback((e: { target: { x: () => number; y: () => number } }) => {
-    setIsDragging(false)
-    const newCx = e.target.x()
-    const newCy = e.target.y()
-    const moveDx = newCx - cx
-    const moveDy = newCy - cy
-    e.target.x(cx)
-    e.target.y(cy)
-    onDragEnd(data.id, {
-      x: data.startPoint.x + moveDx,
-      y: data.startPoint.y + moveDy,
-    }, {
-      x: data.endPoint.x + moveDx,
-      y: data.endPoint.y + moveDy,
-    })
-  }, [data, cx, cy, onDragEnd])
+  const handleDragEnd = useCallback(
+    (e: {
+      target: { x: (v?: number) => number; y: (v?: number) => number };
+    }) => {
+      setIsDragging(false);
+      const newCx = e.target.x();
+      const newCy = e.target.y();
+      const moveDx = newCx - cx;
+      const moveDy = newCy - cy;
+      e.target.x(cx);
+      e.target.y(cy);
+      onDragEnd(
+        data.id,
+        {
+          x: data.startPoint.x + moveDx,
+          y: data.startPoint.y + moveDy,
+        },
+        {
+          x: data.endPoint.x + moveDx,
+          y: data.endPoint.y + moveDy,
+        },
+      );
+    },
+    [data, cx, cy, onDragEnd],
+  );
 
   const handleClick = useCallback(() => {
-    onSelect(data.id)
-  }, [data.id, onSelect])
+    if (!ctrlHeld) return;
+    onSelect(data.id);
+  }, [ctrlHeld, data.id, onSelect]);
 
-  const handleMouseEnter = useCallback((e: { target: { getStage: () => { container: () => HTMLDivElement } | null } }) => {
-    setHovered(true)
-    if (isSelectTool) {
-      const stage = e.target.getStage()
+  const handleMouseEnter = useCallback(
+    (e: {
+      target: { getStage: () => { container: () => HTMLDivElement } | null };
+    }) => {
+      setHovered(true);
+      const stage = e.target.getStage();
       if (stage) {
-        stage.container().style.cursor = 'grab'
+        stage.container().style.cursor = ctrlHeld ? "grab" : "default";
       }
-    }
-  }, [isSelectTool])
+    },
+    [ctrlHeld],
+  );
 
-  const handleMouseLeave = useCallback((e: { target: { getStage: () => { container: () => HTMLDivElement } | null } }) => {
-    setHovered(false)
-    if (isSelectTool) {
-      const stage = e.target.getStage()
+  const handleMouseLeave = useCallback(
+    (e: {
+      target: { getStage: () => { container: () => HTMLDivElement } | null };
+    }) => {
+      setHovered(false);
+      const stage = e.target.getStage();
       if (stage) {
-        stage.container().style.cursor = ''
+        stage.container().style.cursor = "";
       }
-    }
-  }, [isSelectTool])
+    },
+    [],
+  );
 
-  const handleHandleDrag = useCallback((handleIndex: number, e: { target: { x: (v?: number) => number; y: (v?: number) => number } }) => {
-    const hx = e.target.x()
-    const hy = e.target.y()
+  const handleHandleDrag = useCallback(
+    (
+      handleIndex: number,
+      e: { target: { x: (v?: number) => number; y: (v?: number) => number } },
+    ) => {
+      if (!ctrlHeld) return;
+      const hx = e.target.x();
+      const hy = e.target.y();
+      const hdx = hx - cx;
+      const hdy = hy - cy;
+      const newRadius = Math.sqrt(hdx * hdx + hdy * hdy);
 
-    // 计算新的半径：handle到圆心的距离
-    const hdx = hx - cx
-    const hdy = hy - cy
-    const newRadius = Math.sqrt(hdx * hdx + hdy * hdy)
+      onResize(data.id, data.startPoint, { x: cx + newRadius, y: cy });
 
-    // 保持圆心不变，更新 endPoint 使 radius 匹配
-    onResize(data.id, data.startPoint, { x: cx + newRadius, y: cy })
+      const handlePositions = [
+        { x: cx, y: cy - newRadius },
+        { x: cx + newRadius, y: cy },
+        { x: cx, y: cy + newRadius },
+        { x: cx - newRadius, y: cy },
+      ];
+      e.target.x(handlePositions[handleIndex].x);
+      e.target.y(handlePositions[handleIndex].y);
+    },
+    [data, cx, cy, onResize, ctrlHeld],
+  );
 
-    // 修复控制点脱离线框 bug：将控制点位置重置到计算后的圆周位置
-    const handlePositions = [
-      { x: cx, y: cy - newRadius },     // top
-      { x: cx + newRadius, y: cy },     // right
-      { x: cx, y: cy + newRadius },     // bottom
-      { x: cx - newRadius, y: cy },     // left
-    ]
-    e.target.x(handlePositions[handleIndex].x)
-    e.target.y(handlePositions[handleIndex].y)
-  }, [data, cx, cy, onResize])
+  const handleHandleMouseEnter = useCallback(
+    (e: {
+      target: { getStage: () => { container: () => HTMLDivElement } | null };
+    }) => {
+      const stage = e.target.getStage();
+      if (stage) {
+        stage.container().style.cursor = ctrlHeld ? "nwse-resize" : "default";
+      }
+    },
+    [ctrlHeld],
+  );
 
-  const handleWheel = useCallback((e: { evt: WheelEvent }) => {
-    if (!selected || !isSelectTool) return
-    e.evt.preventDefault()
-    const scale = e.evt.deltaY < 0 ? 1.05 : 0.95
-    const newRadius = radius * scale
-    onResize(data.id, data.startPoint, { x: cx + newRadius, y: cy })
-  }, [selected, isSelectTool, data, cx, cy, radius, onResize])
+  const handleHandleMouseLeave = useCallback(
+    (e: {
+      target: { getStage: () => { container: () => HTMLDivElement } | null };
+    }) => {
+      const stage = e.target.getStage();
+      if (stage) {
+        stage.container().style.cursor = hovered
+          ? ctrlHeld
+            ? "grab"
+            : "default"
+          : "";
+      }
+    },
+    [ctrlHeld, hovered],
+  );
 
-  const handles = (selected && !isDragging) ? [
-    { x: cx, y: cy - radius },     // top
-    { x: cx + radius, y: cy },     // right
-    { x: cx, y: cy + radius },     // bottom
-    { x: cx - radius, y: cy },     // left
-  ] : []
+  const handleWheel = useCallback(
+    (e: { evt: WheelEvent }) => {
+      if (!selected || !ctrlHeld) return;
+      e.evt.preventDefault();
+      const scale = e.evt.deltaY < 0 ? 1.05 : 0.95;
+      const newRadius = radius * scale;
+      onResize(data.id, data.startPoint, { x: cx + newRadius, y: cy });
+    },
+    [selected, ctrlHeld, data, cx, cy, radius, onResize],
+  );
 
-  // SELECT 模式 hover 时显示半透明填充
-  const hoverFill = isSelectTool && hovered ? data.color + '30' : undefined
+  const handles =
+    selected && !isDragging
+      ? [
+          { x: cx, y: cy - radius },
+          { x: cx + radius, y: cy },
+          { x: cx, y: cy + radius },
+          { x: cx - radius, y: cy },
+        ]
+      : [];
+
+  const hoverFill = ctrlHeld && hovered ? data.color + "30" : undefined;
+  const strokeColor = ctrlHeld
+    ? hovered
+      ? lightenColor(data.color)
+      : data.color
+    : selected
+      ? data.color + "CC"
+      : data.color;
+  const currentStrokeWidth = ctrlHeld
+    ? hovered
+      ? data.strokeWidth + 1
+      : data.strokeWidth
+    : selected
+      ? data.strokeWidth + 0.5
+      : data.strokeWidth;
 
   return (
     <Group>
       <Group
         x={cx}
         y={cy}
-        draggable={isSelectTool}
+        draggable={ctrlHeld}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
@@ -123,8 +195,8 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
         <KonvaCircle
           radius={radius}
           fill={hoverFill}
-          stroke={hovered ? lightenColor(data.color) : data.color}
-          strokeWidth={hovered ? data.strokeWidth + 1 : data.strokeWidth}
+          stroke={strokeColor}
+          strokeWidth={currentStrokeWidth}
           onClick={handleClick}
           onTap={handleClick}
           onWheel={handleWheel}
@@ -143,20 +215,23 @@ function CircleShapeView({ data, selected, tool, onSelect, onDragEnd, onResize }
           x={pos.x}
           y={pos.y}
           radius={HANDLE_SIZE / 2}
-          fill="white"
+          fill={ctrlHeld ? "white" : data.color + "CC"}
           stroke={data.color}
-          strokeWidth={1}
+          strokeWidth={ctrlHeld ? 1 : 0}
+          opacity={ctrlHeld ? ACTIVE_HANDLE_OPACITY : INACTIVE_HANDLE_OPACITY}
           hitStrokeWidth={HANDLE_HIT_STROKE_WIDTH}
-          draggable
+          draggable={ctrlHeld}
+          onMouseEnter={handleHandleMouseEnter}
+          onMouseLeave={handleHandleMouseLeave}
           onDragMove={(e) => handleHandleDrag(i, e)}
         />
       ))}
     </Group>
-  )
+  );
 }
 
 function lightenColor(color: string): string {
-  return color + '80'
+  return color + "80";
 }
 
-export { CircleShapeView }
+export { CircleShapeView };
