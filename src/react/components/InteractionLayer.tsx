@@ -33,6 +33,7 @@ interface InteractionLayerProps {
   mosaicBrushSize?: number;
   brushSize?: number;
   eraserSize?: number;
+  shortcutRadius?: number;
   onFreehandStroke?: (
     type: "mosaic" | "brush" | "erase",
     points: number[],
@@ -118,6 +119,24 @@ function getFillShape(tool: ToolMode): "rect" | "circle" {
   return FILL_CIRCLE_TOOLS.has(tool) ? "circle" : "rect";
 }
 
+function isAnnotateMode(tool: ToolMode): boolean {
+  return (
+    tool === ToolMode.DRAW_RECT ||
+    tool === ToolMode.DRAW_CIRCLE ||
+    tool === ToolMode.SELECT
+  );
+}
+
+function clampShortcutRadius(
+  center: Point,
+  radius: number,
+  w: number,
+  h: number,
+): number {
+  const maxRadius = Math.min(center.x, center.y, w - center.x, h - center.y);
+  return Math.max(0, Math.min(radius, maxRadius));
+}
+
 function InteractionLayer({
   tool,
   stageWidth,
@@ -139,11 +158,17 @@ function InteractionLayer({
   mosaicBrushSize = 20,
   brushSize = 4,
   eraserSize = 20,
+  shortcutRadius = 40,
   onFreehandStroke,
   onActiveStrokeChange,
 }: InteractionLayerProps) {
   const [drawing, setDrawing] = useState<DrawingState | null>(null);
   const drawingRef = useRef<DrawingState | null>(null);
+  const lastMousePointRef = useRef<Point | null>(null);
+  const shortcutKeyHeldRef = useRef<{ c: boolean; s: boolean }>({
+    c: false,
+    s: false,
+  });
   const freehandPointsRef = useRef<number[]>([]);
   const isFreehandMode = FREEHAND_TOOLS.has(tool);
   const isFillMode = FILL_TOOLS.has(tool);
@@ -181,15 +206,93 @@ function InteractionLayer({
         e.preventDefault();
         onRedo();
       }
+
+      const key = e.key.toLowerCase();
+      if ((key === "c" || key === "s") && !e.repeat) {
+        if (
+          !isAnnotateMode(tool) ||
+          ctrlHeld ||
+          spaceHeld ||
+          drawingRef.current
+        )
+          return;
+        const center = lastMousePointRef.current;
+        if (!center || !isInsideImage(center, imageWidth, imageHeight)) return;
+
+        if (key === "c") {
+          if (shortcutKeyHeldRef.current.c) return;
+          shortcutKeyHeldRef.current.c = true;
+          const radius = clampShortcutRadius(
+            center,
+            shortcutRadius,
+            imageWidth,
+            imageHeight,
+          );
+          if (radius <= 2) return;
+          onAddShape({
+            id: generateId(),
+            type: "circle",
+            startPoint: center,
+            endPoint: { x: center.x + radius, y: center.y },
+            color,
+            strokeWidth,
+          });
+        } else {
+          if (shortcutKeyHeldRef.current.s) return;
+          shortcutKeyHeldRef.current.s = true;
+          const radius = clampShortcutRadius(
+            center,
+            shortcutRadius,
+            imageWidth,
+            imageHeight,
+          );
+          if (radius <= 2) return;
+          onAddShape({
+            id: generateId(),
+            type: "rect",
+            startPoint: { x: center.x - radius, y: center.y - radius },
+            endPoint: { x: center.x + radius, y: center.y + radius },
+            color,
+            strokeWidth,
+          });
+        }
+      }
     };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (key === "c") shortcutKeyHeldRef.current.c = false;
+      if (key === "s") shortcutKeyHeldRef.current.s = false;
+    };
+
+    const handleBlur = () => {
+      shortcutKeyHeldRef.current.c = false;
+      shortcutKeyHeldRef.current.s = false;
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
+    };
   }, [
     onDeleteSelected,
     onClearSelection,
     onUndo,
     onRedo,
     onActiveStrokeChange,
+    tool,
+    ctrlHeld,
+    spaceHeld,
+    imageWidth,
+    imageHeight,
+    shortcutRadius,
+    onAddShape,
+    color,
+    strokeWidth,
   ]);
 
   const buildActiveStroke = useCallback(
@@ -242,6 +345,8 @@ function InteractionLayer({
             : clampPoint(pos, imageWidth, imageHeight),
         );
       }
+
+      lastMousePointRef.current = clampPoint(pos, imageWidth, imageHeight);
 
       if (!drawingRef.current || spaceHeld) return;
 

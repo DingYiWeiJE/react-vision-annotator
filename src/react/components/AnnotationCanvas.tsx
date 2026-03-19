@@ -37,6 +37,7 @@ interface AnnotationCanvasProps {
   brushSize?: number;
   eraserSize?: number;
   onDrawingChange?: (data: DrawingData) => void;
+  shortcutRadius?: number;
 }
 
 interface AnnotationCanvasRef {
@@ -75,6 +76,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       brushSize = 4,
       eraserSize = 20,
       onDrawingChange: onDrawingDataChange,
+      shortcutRadius = 40,
     } = props;
 
     const engine = useAnnotationEngine(annotations);
@@ -484,6 +486,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         mosaicBrushSize={mosaicBrushSize}
         brushSize={brushSize}
         eraserSize={eraserSize}
+        shortcutRadius={shortcutRadius}
         onFreehandStroke={handleFreehandStroke}
         onActiveStrokeChange={setActiveStroke}
       />
