@@ -227,7 +227,6 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       () => ({
         load: (data: AnnotationData[]) => {
           engine.load(data);
-          onChange?.(data);
         },
         export: () => engine.exportJSON(),
         getSelected: () => engine.getSelected(),
