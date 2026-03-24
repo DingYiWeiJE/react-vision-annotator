@@ -12,19 +12,20 @@ function ImageLayer({ src, onLoad, onImageElement }: ImageLayerProps) {
   const prevSrc = useRef(src)
 
   useEffect(() => {
-    prevSrc.current = src
-    const img = new window.Image()
-    img.crossOrigin = 'anonymous'
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous'; 
+    
     img.onload = () => {
-      // 仅当 src 未在加载期间更改时才更新
       if (prevSrc.current === src) {
-        setImage(img)
-        onLoad?.(img.naturalWidth, img.naturalHeight)
-        onImageElement?.(img)
+        setImage(img);
+        onLoad?.(img.naturalWidth, img.naturalHeight);
       }
-    }
-    img.src = src
-  }, [src])
+    };
+
+    // 在 src 后面加个随机参数，强制浏览器重新发起带 CORS 头的请求
+    const connector = src.includes('?') ? '&' : '?';
+    img.src = `${src}${connector}t=${new Date().getTime()}`;
+  }, [src]);
 
   if (!image) return null
 
