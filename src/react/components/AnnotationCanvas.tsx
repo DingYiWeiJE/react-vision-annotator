@@ -101,6 +101,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       : (externalTool ?? engine.tool);
 
     const drawingInitialized = useRef(false);
+    const prevDrawingDataRef = useRef<DrawingData | undefined>(initialDrawingData);
+
     useEffect(() => {
       if (drawingInitialized.current) return;
       drawingInitialized.current = true;
@@ -109,6 +111,15 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         engine.loadDrawing(initialDrawingData);
       }
     }, []);
+
+    // 同步外部 drawingData prop 到内部状态
+    useEffect(() => {
+      if (!drawingInitialized.current) return;
+      if (initialDrawingData && initialDrawingData !== prevDrawingDataRef.current) {
+        prevDrawingDataRef.current = initialDrawingData;
+        engine.loadDrawing(initialDrawingData);
+      }
+    }, [initialDrawingData]);
 
     const handleClearSelection = useCallback(() => {
       engine.clearSelection();
