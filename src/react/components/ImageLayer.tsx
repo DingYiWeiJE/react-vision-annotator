@@ -4,7 +4,7 @@ import { Image as KonvaImage } from 'react-konva'
 interface ImageLayerProps {
   src: string
   onLoad?: (width: number, height: number) => void
-  onImageElement?: (img: HTMLImageElement) => void
+  onImageElement?: (img: HTMLImageElement | null) => void
 }
 
 function ImageLayer({ src, onLoad, onImageElement }: ImageLayerProps) {
@@ -13,6 +13,9 @@ function ImageLayer({ src, onLoad, onImageElement }: ImageLayerProps) {
 
   useEffect(() => {
     prevSrc.current = src
+    setImage(null)
+    onImageElement?.(null)
+
     const img = new window.Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
@@ -21,6 +24,12 @@ function ImageLayer({ src, onLoad, onImageElement }: ImageLayerProps) {
         setImage(img)
         onLoad?.(img.naturalWidth, img.naturalHeight)
         onImageElement?.(img)
+      }
+    }
+    img.onerror = () => {
+      if (prevSrc.current === src) {
+        setImage(null)
+        onImageElement?.(null)
       }
     }
     img.src = src

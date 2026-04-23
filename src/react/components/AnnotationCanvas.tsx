@@ -21,6 +21,11 @@ import { ShapeLayer } from "./ShapeLayer";
 import { InteractionLayer } from "./InteractionLayer";
 import { DrawingLayer, buildCompositeForExport } from "./DrawingLayer";
 
+interface ImageSize {
+  width: number;
+  height: number;
+}
+
 interface AnnotationCanvasProps {
   image: string;
   annotations?: AnnotationData[];
@@ -38,6 +43,7 @@ interface AnnotationCanvasProps {
   eraserSize?: number;
   onDrawingChange?: (data: DrawingData) => void;
   shortcutRadius?: number;
+  onImageSizeChange?: (size: ImageSize) => void;
 }
 
 interface AnnotationCanvasRef {
@@ -56,6 +62,7 @@ interface AnnotationCanvasRef {
   exportDrawingData: () => DrawingData;
   loadDrawingData: (data: DrawingData) => void;
   clearDrawing: () => void;
+  getImageSize: () => ImageSize | null;
 }
 
 const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
@@ -77,12 +84,14 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       eraserSize = 20,
       onDrawingChange: onDrawingDataChange,
       shortcutRadius = 40,
+      onImageSizeChange,
     } = props;
 
     const engine = useAnnotationEngine(annotations);
     const containerRef = useRef<HTMLDivElement>(null);
     const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+    const imageSizeRef = useRef<ImageSize | null>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
 
     useEffect(() => {
@@ -185,14 +194,22 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
 
     const handleImageLoad = useCallback(
       (imgWidth: number, imgHeight: number) => {
-        setImageSize({ width: imgWidth, height: imgHeight });
+        const size = { width: imgWidth, height: imgHeight };
+        imageSizeRef.current = size;
+        setImageSize(size);
+        onImageSizeChange?.(size);
       },
-      [],
+      [onImageSizeChange],
     );
 
-    const handleImageElement = useCallback((img: HTMLImageElement) => {
+    const handleImageElement = useCallback((img: HTMLImageElement | null) => {
       imageRef.current = img;
     }, []);
+
+    useEffect(() => {
+      imageSizeRef.current = null;
+      setImageSize({ width: 0, height: 0 });
+    }, [image]);
 
     const onSelectionChangeRef = useRef(onSelectionChange);
     onSelectionChangeRef.current = onSelectionChange;
@@ -293,6 +310,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
           engine.clearDrawing();
           onDrawingDataChange?.(engine.exportDrawing());
         },
+        getImageSize: () => imageSizeRef.current,
       }),
       [engine, onChange, handleDeleteSelected, onDrawingDataChange, stageSize],
     );
