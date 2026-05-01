@@ -437,8 +437,9 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         const rad = (stage.rotation() * Math.PI) / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
-        const odx = dx * cos + dy * sin;
-        const ody = -dx * sin + dy * cos;
+        const scale = stage.scaleX() || 1;
+        const odx = (dx * cos + dy * sin) / scale;
+        const ody = (-dx * sin + dy * cos) / scale;
         accumDx += odx;
         accumDy += ody;
         stage.offsetX(stage.offsetX() - odx);
