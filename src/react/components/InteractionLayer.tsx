@@ -53,33 +53,6 @@ function generateId(): string {
   return `annotation_${Date.now()}_${++idCounter}`;
 }
 
-function clampPoint(p: Point, w: number, h: number): Point {
-  return { x: Math.max(0, Math.min(p.x, w)), y: Math.max(0, Math.min(p.y, h)) };
-}
-
-function clampCircleEndPoint(
-  center: Point,
-  endPoint: Point,
-  w: number,
-  h: number,
-): Point {
-  const dx = endPoint.x - center.x;
-  const dy = endPoint.y - center.y;
-  const rawRadius = Math.sqrt(dx * dx + dy * dy);
-  if (rawRadius === 0) return endPoint;
-
-  const maxRadius = Math.min(center.x, center.y, w - center.x, h - center.y);
-  if (maxRadius <= 0) return center;
-  if (rawRadius <= maxRadius) return endPoint;
-
-  const ratio = maxRadius / rawRadius;
-  return { x: center.x + dx * ratio, y: center.y + dy * ratio };
-}
-
-function isInsideImage(p: Point, w: number, h: number): boolean {
-  return p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h;
-}
-
 const FREEHAND_TOOLS = new Set([
   ToolMode.MOSAIC_DRAW,
   ToolMode.BRUSH_DRAW,
@@ -127,16 +100,6 @@ function isAnnotateMode(tool: ToolMode): boolean {
   );
 }
 
-function clampShortcutRadius(
-  center: Point,
-  radius: number,
-  w: number,
-  h: number,
-): number {
-  const maxRadius = Math.min(center.x, center.y, w - center.x, h - center.y);
-  return Math.max(0, Math.min(radius, maxRadius));
-}
-
 function InteractionLayer({
   tool,
   stageWidth,
@@ -165,6 +128,7 @@ function InteractionLayer({
   const [drawing, setDrawing] = useState<DrawingState | null>(null);
   const drawingRef = useRef<DrawingState | null>(null);
   const lastMousePointRef = useRef<Point | null>(null);
+  const stageRectRef = useRef<DOMRect | null>(null);
   const shortcutKeyHeldRef = useRef<{ c: boolean; s: boolean }>({
     c: false,
     s: false,
@@ -217,17 +181,12 @@ function InteractionLayer({
         )
           return;
         const center = lastMousePointRef.current;
-        if (!center || !isInsideImage(center, imageWidth, imageHeight)) return;
+        if (!center) return;
 
         if (key === "c") {
           if (shortcutKeyHeldRef.current.c) return;
           shortcutKeyHeldRef.current.c = true;
-          const radius = clampShortcutRadius(
-            center,
-            shortcutRadius,
-            imageWidth,
-            imageHeight,
-          );
+          const radius = shortcutRadius;
           if (radius <= 2) return;
           onAddShape({
             id: generateId(),
@@ -240,12 +199,7 @@ function InteractionLayer({
         } else {
           if (shortcutKeyHeldRef.current.s) return;
           shortcutKeyHeldRef.current.s = true;
-          const radius = clampShortcutRadius(
-            center,
-            shortcutRadius,
-            imageWidth,
-            imageHeight,
-          );
+          const radius = shortcutRadius;
           if (radius <= 2) return;
           onAddShape({
             id: generateId(),
@@ -310,17 +264,19 @@ function InteractionLayer({
     (e: { evt: MouseEvent }) => {
       if (e.evt.button !== 0 || spaceHeld) return;
 
-      const pos = screenToImage(e.evt.offsetX, e.evt.offsetY);
-      if (!ctrlHeld && !isInsideImage(pos, imageWidth, imageHeight)) return;
+      const target = e.evt.target;
+      if (target instanceof HTMLElement) {
+        stageRectRef.current = target.getBoundingClientRect();
+      }
 
-      const clamped = clampPoint(pos, imageWidth, imageHeight);
+      const pos = screenToImage(e.evt.offsetX, e.evt.offsetY);
 
       if (isFreehandMode && !ctrlHeld) {
-        freehandPointsRef.current = [clamped.x, clamped.y];
+        freehandPointsRef.current = [pos.x, pos.y];
         onActiveStrokeChange?.(buildActiveStroke());
       }
 
-      setDrawing({ startPoint: clamped, currentPoint: clamped });
+      setDrawing({ startPoint: pos, currentPoint: pos });
     },
     [
       screenToImage,
@@ -336,54 +292,21 @@ function InteractionLayer({
 
   const handleMouseMove = useCallback(
     (e: { evt: MouseEvent }) => {
+      const target = e.evt.target;
+      if (target instanceof HTMLElement) {
+        stageRectRef.current = target.getBoundingClientRect();
+      }
+
       const pos = screenToImage(e.evt.offsetX, e.evt.offsetY);
 
       if (isFreehandMode) {
-        setMousePos(
-          spaceHeld || ctrlHeld
-            ? null
-            : clampPoint(pos, imageWidth, imageHeight),
-        );
+        setMousePos(spaceHeld || ctrlHeld ? null : pos);
       }
 
-      lastMousePointRef.current = clampPoint(pos, imageWidth, imageHeight);
+      lastMousePointRef.current = pos;
 
-      if (!drawingRef.current || spaceHeld) return;
-
-      const { startPoint } = drawingRef.current;
-
-      if (isFreehandMode && !ctrlHeld) {
-        const clamped = clampPoint(pos, imageWidth, imageHeight);
-        freehandPointsRef.current.push(clamped.x, clamped.y);
-        onActiveStrokeChange?.(buildActiveStroke());
-        setDrawing({ startPoint, currentPoint: clamped });
-        return;
-      }
-
-      let currentPoint: Point;
-      if (ctrlHeld || isFillMode) {
-        currentPoint = clampPoint(pos, imageWidth, imageHeight);
-      } else if (tool === ToolMode.DRAW_CIRCLE) {
-        currentPoint = clampCircleEndPoint(
-          startPoint,
-          pos,
-          imageWidth,
-          imageHeight,
-        );
-      } else {
-        currentPoint = clampPoint(pos, imageWidth, imageHeight);
-      }
-
-      if (FILL_CIRCLE_TOOLS.has(tool)) {
-        currentPoint = clampCircleEndPoint(
-          startPoint,
-          pos,
-          imageWidth,
-          imageHeight,
-        );
-      }
-
-      setDrawing({ startPoint, currentPoint });
+      // Active drawing is tracked by the window listener so dragging outside
+      // the image keeps the preview aligned with the mouse.
     },
     [
       screenToImage,
@@ -398,6 +321,48 @@ function InteractionLayer({
       onActiveStrokeChange,
     ],
   );
+
+  useEffect(() => {
+    if (!drawing) return;
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      const rect = stageRectRef.current;
+      if (!rect) return;
+
+      const pos = screenToImage(e.clientX - rect.left, e.clientY - rect.top);
+
+      if (isFreehandMode) {
+        setMousePos(spaceHeld || ctrlHeld ? null : pos);
+      }
+
+      lastMousePointRef.current = pos;
+
+      const current = drawingRef.current;
+      if (!current || spaceHeld) return;
+
+      const { startPoint } = current;
+
+      if (isFreehandMode && !ctrlHeld) {
+        freehandPointsRef.current.push(pos.x, pos.y);
+        onActiveStrokeChange?.(buildActiveStroke());
+        setDrawing({ startPoint, currentPoint: pos });
+        return;
+      }
+
+      setDrawing({ startPoint, currentPoint: pos });
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    return () => window.removeEventListener("mousemove", handleWindowMouseMove);
+  }, [
+    drawing,
+    screenToImage,
+    isFreehandMode,
+    spaceHeld,
+    ctrlHeld,
+    buildActiveStroke,
+    onActiveStrokeChange,
+  ]);
 
   const finishDrawing = useCallback(
     (drawState: DrawingState) => {
@@ -448,33 +413,6 @@ function InteractionLayer({
       }
 
       const { startPoint, currentPoint } = drawState;
-
-      if (
-        tool === ToolMode.DRAW_RECT &&
-        !ctrlHeld &&
-        !isInsideImage(currentPoint, imageWidth, imageHeight)
-      ) {
-        setDrawing(null);
-        return;
-      }
-      if (tool === ToolMode.DRAW_CIRCLE && !ctrlHeld) {
-        const dx = currentPoint.x - startPoint.x;
-        const dy = currentPoint.y - startPoint.y;
-        const radius = Math.sqrt(dx * dx + dy * dy);
-        const maxRadius = Math.min(
-          startPoint.x,
-          startPoint.y,
-          imageWidth - startPoint.x,
-          imageHeight - startPoint.y,
-        );
-        if (
-          radius > maxRadius ||
-          !isInsideImage(startPoint, imageWidth, imageHeight)
-        ) {
-          setDrawing(null);
-          return;
-        }
-      }
 
       if (ctrlHeld) {
         const x = Math.min(startPoint.x, currentPoint.x);
