@@ -432,7 +432,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       };
 
       const onMouseDown = (e: MouseEvent) => {
-        if (e.button !== 0 || !spaceHeld) return;
+        const isPanMode = currentTool === ToolMode.PAN;
+        if (e.button !== 0 || (!spaceHeld && !isPanMode)) return;
 
         const rect = container.getBoundingClientRect();
         const hit = stage.getIntersection({
@@ -480,7 +481,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       const onMouseUp = () => {
         if (!isPanning) return;
         isPanning = false;
-        container.style.cursor = spaceHeld ? "grab" : "";
+        const isPanMode = currentTool === ToolMode.PAN;
+        container.style.cursor = (spaceHeld || isPanMode) ? "grab" : "";
         if (accumDx === 0 && accumDy === 0) {
           handleClearSelection();
         } else {
@@ -501,13 +503,14 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         container.removeEventListener("mouseup", onMouseUp);
         window.removeEventListener("mouseup", onMouseUp);
       };
-    }, [engine, spaceHeld]);
+    }, [engine, spaceHeld, currentTool]);
 
     useEffect(() => {
       const stage = stageRef.current;
       const container = stage?.container();
       if (!container) return;
-      if (spaceHeld) {
+      const isPanMode = currentTool === ToolMode.PAN;
+      if (spaceHeld || isPanMode) {
         container.style.cursor = "grab";
         return () => {
           container.style.cursor = "";
@@ -516,7 +519,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       if (container.style.cursor === "grab") {
         container.style.cursor = "";
       }
-    }, [spaceHeld]);
+    }, [spaceHeld, currentTool]);
 
     const interactionLayer = !readOnly && (
       <InteractionLayer

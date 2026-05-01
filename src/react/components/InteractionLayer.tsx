@@ -262,7 +262,7 @@ function InteractionLayer({
 
   const handleMouseDown = useCallback(
     (e: { evt: MouseEvent }) => {
-      if (e.evt.button !== 0 || spaceHeld) return;
+      if (e.evt.button !== 0 || spaceHeld || tool === ToolMode.PAN) return;
 
       const target = e.evt.target;
       if (target instanceof HTMLElement) {
@@ -287,6 +287,7 @@ function InteractionLayer({
       isFreehandMode,
       buildActiveStroke,
       onActiveStrokeChange,
+      tool,
     ],
   );
 

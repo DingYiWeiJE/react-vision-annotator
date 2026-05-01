@@ -9,6 +9,7 @@ export enum ToolMode {
   BRUSH_FILL_CIRCLE = "BRUSH_FILL_CIRCLE",
   MOSAIC_FILL_RECT = "MOSAIC_FILL_RECT",
   MOSAIC_FILL_CIRCLE = "MOSAIC_FILL_CIRCLE",
+  PAN = "PAN",
 }
 
 export class ToolController {
