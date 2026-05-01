@@ -23,24 +23,38 @@ export class ViewportController {
   }
 
   zoomIn(): void {
-    this._state.scale = Math.min(this._state.scale + this.ZOOM_STEP, this.MAX_SCALE)
+    this._state.scale = this.clampScale(this._state.scale + this.ZOOM_STEP)
     this.notify()
   }
 
   zoomOut(): void {
-    this._state.scale = Math.max(this._state.scale - this.ZOOM_STEP, this.MIN_SCALE)
+    this._state.scale = this.clampScale(this._state.scale - this.ZOOM_STEP)
     this.notify()
   }
 
   zoomBy(factor: number): void {
-    this._state.scale = Math.min(Math.max(this._state.scale * factor, this.MIN_SCALE), this.MAX_SCALE)
+    this._state.scale = this.clampScale(this._state.scale * factor)
+    this.notify()
+  }
+
+  fitToBounds(contentWidth: number, contentHeight: number, boundsWidth: number, boundsHeight: number): void {
+    if (contentWidth <= 0 || contentHeight <= 0 || boundsWidth <= 0 || boundsHeight <= 0) return
+
+    const scale = Math.min(boundsWidth / contentWidth, boundsHeight / contentHeight)
+
+    this._state = {
+      scale,
+      rotation: 0,
+      offsetX: boundsWidth / (2 * scale) - contentWidth / 2,
+      offsetY: boundsHeight / (2 * scale) - contentHeight / 2,
+    }
     this.notify()
   }
 
   /** 以屏幕坐标 (sx, sy) 为中心缩放，缩放后该点对应的图像位置不变 */
   zoomAt(factor: number, sx: number, sy: number): void {
     const oldScale = this._state.scale
-    const newScale = Math.min(Math.max(oldScale * factor, this.MIN_SCALE), this.MAX_SCALE)
+    const newScale = this.clampScale(oldScale * factor)
     // Konva 变换：screenPos = (imagePos + offsetX) * scale
     // imagePos = screenPos / scale - offsetX（缩放前后保持不变）
     // newOffsetX = screenPos / newScale - imagePos = screenPos / newScale - screenPos / oldScale + oldOffsetX
@@ -93,5 +107,11 @@ export class ViewportController {
 
   private notify(): void {
     this.onChange?.({ ...this._state })
+  }
+
+  private clampScale(scale: number): number {
+    const minScale = Math.min(this.MIN_SCALE, this._state.scale)
+    const maxScale = Math.max(this.MAX_SCALE, this._state.scale)
+    return Math.min(Math.max(scale, minScale), maxScale)
   }
 }

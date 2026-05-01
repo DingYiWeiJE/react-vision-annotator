@@ -74,6 +74,35 @@ describe('ViewportController', () => {
     })
   })
 
+  it('fitToBounds() 应完整适配并居中横向图片', () => {
+    const vc = new ViewportController()
+    vc.fitToBounds(1000, 500, 800, 600)
+    const state = vc.getState()
+
+    expect(state.scale).toBeCloseTo(0.8)
+    expect(state.rotation).toBe(0)
+    expect(state.offsetX).toBeCloseTo(0)
+    expect(state.offsetY).toBeCloseTo(125)
+  })
+
+  it('fitToBounds() 应完整适配并居中纵向图片', () => {
+    const vc = new ViewportController()
+    vc.fitToBounds(500, 1000, 800, 600)
+    const state = vc.getState()
+
+    expect(state.scale).toBeCloseTo(0.6)
+    expect(state.rotation).toBe(0)
+    expect(state.offsetX).toBeCloseTo(416.6666666666667)
+    expect(state.offsetY).toBeCloseTo(0)
+  })
+
+  it('fitToBounds() 应允许超大图片缩放到完整可见', () => {
+    const vc = new ViewportController()
+    vc.fitToBounds(20000, 10000, 800, 600)
+
+    expect(vc.getState().scale).toBeCloseTo(0.04)
+  })
+
   it('screenToImage() 应正确转换坐标', () => {
     const vc = new ViewportController()
     // 默认 scale=1, offset=0

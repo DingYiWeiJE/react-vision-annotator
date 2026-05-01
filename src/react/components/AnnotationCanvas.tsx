@@ -93,6 +93,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
     const imageSizeRef = useRef<ImageSize | null>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
+    const fittedImageRef = useRef<string | null>(null);
 
     useEffect(() => {
       const el = containerRef.current;
@@ -207,9 +208,38 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     }, []);
 
     useEffect(() => {
+      fittedImageRef.current = null;
       imageSizeRef.current = null;
       setImageSize({ width: 0, height: 0 });
     }, [image]);
+
+    const fitImageToStage = useCallback(
+      (size: ImageSize): boolean => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        const width = rect && rect.width > 0 ? rect.width : stageSize.width;
+        const height = rect && rect.height > 0 ? rect.height : stageSize.height;
+        if (width <= 0 || height <= 0 || size.width <= 0 || size.height <= 0) {
+          return false;
+        }
+
+        engine.viewportController.fitToBounds(
+          size.width,
+          size.height,
+          width,
+          height,
+        );
+        return true;
+      },
+      [engine, stageSize],
+    );
+
+    useEffect(() => {
+      if (fittedImageRef.current === image) return;
+      if (imageSize.width <= 0 || imageSize.height <= 0) return;
+      if (fitImageToStage(imageSize)) {
+        fittedImageRef.current = image;
+      }
+    }, [fitImageToStage, image, imageSize]);
 
     const onSelectionChangeRef = useRef(onSelectionChange);
     onSelectionChangeRef.current = onSelectionChange;
