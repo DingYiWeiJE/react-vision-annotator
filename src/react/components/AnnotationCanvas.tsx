@@ -354,6 +354,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     const stageRef = useRef<Konva.Stage>(null);
     const previousToolRef = useRef(currentTool);
 
+    const effectiveCtrlHeld = ctrlHeld || currentTool === ToolMode.MOVE_ANNOTATION;
+
     useEffect(() => {
       const previousTool = previousToolRef.current;
       const enteringDrawOrErase =
@@ -530,7 +532,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         imageHeight={imageSize.height}
         color={color}
         strokeWidth={strokeWidth}
-        ctrlHeld={ctrlHeld}
+        ctrlHeld={effectiveCtrlHeld}
         spaceHeld={spaceHeld}
         screenToImage={screenToImage}
         onAddShape={handleAddShape}
@@ -558,8 +560,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       <ShapeLayer
         shapes={engine.shapes}
         selectedIds={engine.selectedIds}
-        ctrlHeld={ctrlHeld}
-        listening={ctrlHeld && !isDrawing}
+        ctrlHeld={effectiveCtrlHeld}
+        listening={effectiveCtrlHeld && !isDrawing}
         onSelect={handleSelect}
         onDragEnd={handleDragEnd}
         onResize={handleResize}

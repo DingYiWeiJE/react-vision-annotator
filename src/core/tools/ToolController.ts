@@ -10,6 +10,7 @@ export enum ToolMode {
   MOSAIC_FILL_RECT = "MOSAIC_FILL_RECT",
   MOSAIC_FILL_CIRCLE = "MOSAIC_FILL_CIRCLE",
   PAN = "PAN",
+  MOVE_ANNOTATION = "MOVE_ANNOTATION",
 }
 
 export class ToolController {
