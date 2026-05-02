@@ -534,6 +534,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         strokeWidth={strokeWidth}
         ctrlHeld={effectiveCtrlHeld}
         spaceHeld={spaceHeld}
+        scale={engine.viewport.scale}
         screenToImage={screenToImage}
         onAddShape={handleAddShape}
         onSelectByBox={(box) => {
@@ -562,6 +563,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         selectedIds={engine.selectedIds}
         ctrlHeld={effectiveCtrlHeld}
         listening={effectiveCtrlHeld && !isDrawing}
+        scale={engine.viewport.scale}
         onSelect={handleSelect}
         onDragEnd={handleDragEnd}
         onResize={handleResize}

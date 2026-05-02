@@ -17,6 +17,7 @@ interface InteractionLayerProps {
   strokeWidth: number;
   ctrlHeld: boolean;
   spaceHeld: boolean;
+  scale: number;
   screenToImage: (x: number, y: number) => Point;
   onAddShape: (data: AnnotationData) => void;
   onSelectByBox: (box: {
@@ -110,6 +111,7 @@ function InteractionLayer({
   strokeWidth,
   ctrlHeld,
   spaceHeld,
+  scale,
   screenToImage,
   onAddShape,
   onSelectByBox,
@@ -502,15 +504,15 @@ function InteractionLayer({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       />
-      {drawing && renderPreview(drawing, tool, color, strokeWidth, ctrlHeld)}
+      {drawing && renderPreview(drawing, tool, color, strokeWidth, ctrlHeld, scale)}
       {isFreehandMode && mousePos && (
         <KonvaCircle
           x={mousePos.x}
           y={mousePos.y}
           radius={activeFreehandSize / 2}
           stroke="#666"
-          strokeWidth={1}
-          dash={[4, 4]}
+          strokeWidth={scale > 1 ? 1 / scale : 1}
+          dash={scale > 1 ? [4 / scale, 4 / scale] : [4, 4]}
           listening={false}
         />
       )}
@@ -524,6 +526,7 @@ function renderPreview(
   color: string,
   strokeWidth: number,
   ctrlHeld: boolean,
+  scale: number,
 ): React.ReactNode {
   const { startPoint, currentPoint } = drawing;
 
@@ -539,8 +542,8 @@ function renderPreview(
         width={width}
         height={height}
         stroke="#1890ff"
-        strokeWidth={strokeWidth}
-        dash={[6, 3]}
+        strokeWidth={scale > 1 ? strokeWidth / scale : strokeWidth}
+        dash={scale > 1 ? [6 / scale, 3 / scale] : [6, 3]}
         fill="rgba(24,144,255,0.1)"
         listening={false}
       />
@@ -559,8 +562,8 @@ function renderPreview(
         width={width}
         height={height}
         stroke={color}
-        strokeWidth={strokeWidth}
-        dash={[6, 3]}
+        strokeWidth={scale > 1 ? strokeWidth / scale : strokeWidth}
+        dash={scale > 1 ? [6 / scale, 3 / scale] : [6, 3]}
         listening={false}
       />
     );
@@ -576,8 +579,8 @@ function renderPreview(
         y={startPoint.y}
         radius={radius}
         stroke={color}
-        strokeWidth={strokeWidth}
-        dash={[6, 3]}
+        strokeWidth={scale > 1 ? strokeWidth / scale : strokeWidth}
+        dash={scale > 1 ? [6 / scale, 3 / scale] : [6, 3]}
         listening={false}
       />
     );
@@ -597,8 +600,8 @@ function renderPreview(
         width={width}
         height={height}
         stroke={tool === ToolMode.BRUSH_FILL_RECT ? color : "#888"}
-        strokeWidth={1}
-        dash={[4, 3]}
+        strokeWidth={scale > 1 ? 1 / scale : 1}
+        dash={scale > 1 ? [4 / scale, 3 / scale] : [4, 3]}
         fill={fillColor}
         listening={false}
       />
@@ -617,8 +620,8 @@ function renderPreview(
         y={startPoint.y}
         radius={radius}
         stroke={tool === ToolMode.BRUSH_FILL_CIRCLE ? color : "#888"}
-        strokeWidth={1}
-        dash={[4, 3]}
+        strokeWidth={scale > 1 ? 1 / scale : 1}
+        dash={scale > 1 ? [4 / scale, 3 / scale] : [4, 3]}
         fill={fillColor}
         listening={false}
       />

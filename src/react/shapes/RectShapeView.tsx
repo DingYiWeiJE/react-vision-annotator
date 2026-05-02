@@ -6,6 +6,7 @@ interface RectShapeViewProps {
   data: AnnotationData;
   selected: boolean;
   ctrlHeld: boolean;
+  scale: number;
   onSelect: (id: string) => void;
   onDragEnd: (id: string, startPoint: Point, endPoint: Point) => void;
   onResize: (id: string, startPoint: Point, endPoint: Point) => void;
@@ -20,6 +21,7 @@ function RectShapeView({
   data,
   selected,
   ctrlHeld,
+  scale,
   onSelect,
   onDragEnd,
   onResize,
@@ -218,13 +220,14 @@ function RectShapeView({
     : selected
       ? data.color + "CC"
       : data.color;
-  const currentStrokeWidth = ctrlHeld
+  const baseStrokeWidth = ctrlHeld
     ? hovered
       ? data.strokeWidth + 1
       : data.strokeWidth
     : selected
       ? data.strokeWidth + 0.5
       : data.strokeWidth;
+  const currentStrokeWidth = scale > 1 ?  baseStrokeWidth / scale : baseStrokeWidth;
 
   return (
     <Group>
@@ -250,12 +253,12 @@ function RectShapeView({
           key={i}
           x={pos.x}
           y={pos.y}
-          radius={HANDLE_SIZE / 2}
+          radius={scale > 1 ? HANDLE_SIZE / 2 / scale : HANDLE_SIZE / 2}
           fill="white"
           stroke={data.color}
-          strokeWidth={1}
+          strokeWidth={scale > 1 ? 1 / scale : 1}
           opacity={ctrlHeld ? ACTIVE_HANDLE_OPACITY : INACTIVE_HANDLE_OPACITY}
-          hitStrokeWidth={HANDLE_HIT_STROKE_WIDTH}
+          hitStrokeWidth={scale > 1 ? HANDLE_HIT_STROKE_WIDTH / scale : HANDLE_HIT_STROKE_WIDTH}
           draggable={ctrlHeld}
           onMouseEnter={handleHandleMouseEnter}
           onMouseLeave={handleHandleMouseLeave}

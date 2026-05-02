@@ -9,6 +9,7 @@ interface ShapeLayerProps {
   selectedIds: string[];
   ctrlHeld: boolean;
   listening?: boolean;
+  scale: number;
   onSelect: (id: string) => void;
   onDragEnd: (id: string, startPoint: Point, endPoint: Point) => void;
   onResize: (id: string, startPoint: Point, endPoint: Point) => void;
@@ -19,6 +20,7 @@ function ShapeLayer({
   selectedIds,
   ctrlHeld,
   listening = true,
+  scale,
   onSelect,
   onDragEnd,
   onResize,
@@ -39,6 +41,7 @@ function ShapeLayer({
                 data={shape}
                 selected={isSelected}
                 ctrlHeld={ctrlHeld}
+                scale={scale}
                 onSelect={onSelect}
                 onDragEnd={onDragEnd}
                 onResize={onResize}
@@ -51,6 +54,7 @@ function ShapeLayer({
                 data={shape}
                 selected={isSelected}
                 ctrlHeld={ctrlHeld}
+                scale={scale}
                 onSelect={onSelect}
                 onDragEnd={onDragEnd}
                 onResize={onResize}
