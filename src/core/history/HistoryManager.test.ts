@@ -5,7 +5,7 @@ import type { AnnotationData } from '../../types/annotation'
 const makeSnapshot = (ids: string[]): AnnotationData[] =>
   ids.map(id => ({
     id,
-    type: 'rect' as const,
+    type: 'rectangle' as const,
     startPoint: { x: 0, y: 0 },
     endPoint: { x: 100, y: 100 },
     color: '#ff0000',

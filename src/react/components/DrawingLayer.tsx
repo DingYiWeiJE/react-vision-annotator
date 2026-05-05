@@ -21,7 +21,7 @@ function drawStrokePath(
   ctx.globalCompositeOperation = compositeOp
   ctx.fillStyle = style
 
-  if (stroke.fillShape === 'rect') {
+  if (stroke.fillShape === 'rectangle') {
     const [x1, y1, x2, y2] = stroke.points
     ctx.fillRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
     return

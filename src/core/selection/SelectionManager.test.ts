@@ -6,7 +6,7 @@ import type { AnnotationData } from '../../types/annotation'
 
 const makeRect = (id: string, x: number, y: number, w: number, h: number): AnnotationData => ({
   id,
-  type: 'rect',
+  type: 'rectangle',
   startPoint: { x, y },
   endPoint: { x: x + w, y: y + h },
   color: '#ff0000',

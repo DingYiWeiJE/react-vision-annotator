@@ -39,7 +39,7 @@ interface InteractionLayerProps {
     type: "mosaic" | "brush" | "erase",
     points: number[],
     color?: string,
-    fillShape?: "rect" | "circle",
+    fillShape?: "rectangle" | "circle",
   ) => void;
   onActiveStrokeChange?: (stroke: DrawingStroke | null) => void;
 }
@@ -89,8 +89,8 @@ function getFillStrokeType(tool: ToolMode): "mosaic" | "brush" {
   return "brush";
 }
 
-function getFillShape(tool: ToolMode): "rect" | "circle" {
-  return FILL_CIRCLE_TOOLS.has(tool) ? "circle" : "rect";
+function getFillShape(tool: ToolMode): "rectangle" | "circle" {
+  return FILL_CIRCLE_TOOLS.has(tool) ? "circle" : "rectangle";
 }
 
 function isAnnotateMode(tool: ToolMode): boolean {
@@ -205,7 +205,7 @@ function InteractionLayer({
           if (radius <= 2) return;
           onAddShape({
             id: generateId(),
-            type: "rect",
+            type: "rectangle",
             startPoint: { x: center.x - radius, y: center.y - radius },
             endPoint: { x: center.x + radius, y: center.y + radius },
             color,
@@ -398,7 +398,7 @@ function InteractionLayer({
           currentPoint.x,
           currentPoint.y,
         ];
-        if (fillShape === "rect") {
+        if (fillShape === "rectangle") {
           const w = Math.abs(currentPoint.x - startPoint.x);
           const h = Math.abs(currentPoint.y - startPoint.y);
           if (w > 2 && h > 2)
@@ -429,7 +429,7 @@ function InteractionLayer({
         if (width > 2 && height > 2) {
           onAddShape({
             id: generateId(),
-            type: "rect",
+            type: "rectangle",
             startPoint,
             endPoint: currentPoint,
             color,

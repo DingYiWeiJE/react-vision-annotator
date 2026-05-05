@@ -142,7 +142,7 @@ const canvasRef = useRef<AnnotationCanvasRef>(null)
 ```ts
 interface AnnotationData {
   id: string
-  type: 'rect' | 'circle'
+  type: 'rectangle' | 'circle'
   startPoint: { x: number; y: number }  // 矩形：左上角；圆形：圆心
   endPoint: { x: number; y: number }    // 矩形：右下角；圆形：圆周上一点
   label?: string
@@ -163,7 +163,7 @@ interface DrawingData {
 interface DrawingStroke {
   id: string
   type: 'mosaic' | 'brush' | 'erase'
-  fillShape?: 'rect' | 'circle'   // 填充形状工具产生的笔画有此字段
+  fillShape?: 'rectangle' | 'circle'   // 填充形状工具产生的笔画有此字段
   points: number[]                 // 路径点 [x1,y1,x2,y2,...]；fillShape 时为 [x1,y1,x2,y2]
   brushSize: number
   color?: string                   // 仅 brush 类型有颜色

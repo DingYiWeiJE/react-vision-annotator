@@ -118,7 +118,7 @@ export type Point = {
 
 export type AnnotationData = {
   id: string
-  type: "rect" | "circle"
+  type: "rectangle" | "circle"
   startPoint: Point  // Rect: 绘制起点；Circle: 圆心
   endPoint: Point    // Rect: 绘制终点；Circle: 圆周上一点
   label?: string     // 标注类别，如 "cat" / "car"
@@ -133,7 +133,7 @@ export type AnnotationData = {
 ```json
 {
   "id": "1",
-  "type": "rect",
+  "type": "rectangle",
   "startPoint": { "x": 100, "y": 120 },
   "endPoint":   { "x": 300, "y": 270 },
   "label": "cat",
@@ -256,7 +256,7 @@ class RectShape extends BaseShape {
   toJSON(): AnnotationData {
     return {
       id: this.id,
-      type: 'rect',
+      type: 'rectangle',
       startPoint: { ...this.startPoint },
       endPoint:   { ...this.endPoint },
       label: this.label,
@@ -328,7 +328,7 @@ class ShapeFactory {
 
   static create(data: AnnotationData): BaseShape {
     switch (data.type) {
-      case 'rect':   return new RectShape(data)
+      case 'rectangle':   return new RectShape(data)
       case 'circle': return new CircleShape(data)
       default:       throw new Error(`Unknown shape type: ${data.type}`)
     }

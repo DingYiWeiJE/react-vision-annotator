@@ -5,7 +5,7 @@ import type { AnnotationData } from '../../types/annotation'
 
 const rectData: AnnotationData = {
   id: '1',
-  type: 'rect',
+  type: 'rectangle',
   startPoint: { x: 100, y: 120 },
   endPoint: { x: 300, y: 270 },
   label: 'cat',

@@ -34,7 +34,7 @@ function ShapeLayer({
       {visibleShapes.map((shape) => {
         const isSelected = selectedSet.has(shape.id);
         switch (shape.type) {
-          case "rect":
+          case "rectangle":
             return (
               <RectShapeView
                 key={shape.id}

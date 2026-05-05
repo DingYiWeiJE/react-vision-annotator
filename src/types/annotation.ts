@@ -5,7 +5,7 @@ export interface Point {
 
 export interface AnnotationData {
   id: string
-  type: 'rect' | 'circle'
+  type: 'rectangle' | 'circle'
   startPoint: Point
   endPoint: Point
   label?: string
@@ -32,7 +32,7 @@ export interface DrawingStroke {
   id: string
   type: 'mosaic' | 'brush' | 'erase'
   /** 填充形状模式：points=[x1,y1,x2,y2]；未设置时为自由路径点列表 */
-  fillShape?: 'rect' | 'circle'
+  fillShape?: 'rectangle' | 'circle'
   points: number[]
   brushSize: number
   color?: string

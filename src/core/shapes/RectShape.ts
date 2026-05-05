@@ -24,7 +24,7 @@ export class RectShape extends BaseShape {
   toJSON(): AnnotationData {
     return {
       id: this.id,
-      type: 'rect',
+      type: 'rectangle',
       startPoint: { ...this._startPoint },
       endPoint: { ...this._endPoint },
       label: this.label,

@@ -268,7 +268,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
         type: "mosaic" | "brush" | "erase",
         points: number[],
         strokeColor?: string,
-        fillShape?: "rect" | "circle",
+        fillShape?: "rectangle" | "circle",
       ) => {
         let size: number;
         if (type === "mosaic") size = mosaicBrushSize;
