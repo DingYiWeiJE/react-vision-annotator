@@ -63,6 +63,8 @@ interface AnnotationCanvasRef {
   loadDrawingData: (data: DrawingData) => void;
   clearDrawing: () => void;
   getImageSize: () => ImageSize | null;
+  setAnnotationLayerVisibility: (flag: boolean) => void
+  setDrawingLayerVisibility: (flag: boolean) => void
 }
 
 const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
@@ -94,6 +96,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     const imageSizeRef = useRef<ImageSize | null>(null);
     const imageRef = useRef<HTMLImageElement | null>(null);
     const fittedImageRef = useRef<string | null>(null);
+    const [showDrawingLayer, setShowDrawingLayer] = useState(true)
+    const [showSapeLayer, setShowSapeLayer] = useState(true)
 
     useEffect(() => {
       const el = containerRef.current;
@@ -341,6 +345,8 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
           onDrawingDataChange?.(engine.exportDrawing());
         },
         getImageSize: () => imageSizeRef.current,
+        setAnnotationLayerVisibility: setShowSapeLayer,
+        setDrawingLayerVisibility: setShowDrawingLayer
       }),
       [engine, onChange, handleDeleteSelected, onDrawingDataChange, stageSize],
     );
@@ -557,19 +563,6 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
       />
     );
 
-    const shapeLayer = (
-      <ShapeLayer
-        shapes={engine.shapes}
-        selectedIds={engine.selectedIds}
-        ctrlHeld={effectiveCtrlHeld}
-        listening={effectiveCtrlHeld && !isDrawing}
-        scale={engine.viewport.scale}
-        onSelect={handleSelect}
-        onDragEnd={handleDragEnd}
-        onResize={handleResize}
-      />
-    );
-
     return (
       <div
         ref={containerRef}
@@ -592,15 +585,24 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
               onLoad={handleImageLoad}
               onImageElement={handleImageElement}
             />
-            <DrawingLayer
+            {showDrawingLayer && <DrawingLayer
               image={imageRef.current}
               strokes={engine.drawingData.strokes}
               mosaicPixelSize={engine.drawingData.mosaicPixelSize}
               activeStroke={activeStroke}
-            />
+            />}
           </Layer>
           {interactionLayer}
-          {shapeLayer}
+          {showSapeLayer && <ShapeLayer
+            shapes={engine.shapes}
+            selectedIds={engine.selectedIds}
+            ctrlHeld={effectiveCtrlHeld}
+            listening={effectiveCtrlHeld && !isDrawing}
+            scale={engine.viewport.scale}
+            onSelect={handleSelect}
+            onDragEnd={handleDragEnd}
+            onResize={handleResize}
+          />}
         </Stage>
       </div>
     );
