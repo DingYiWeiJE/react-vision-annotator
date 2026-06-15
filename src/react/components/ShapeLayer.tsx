@@ -1,4 +1,3 @@
-import React, { useCallback } from "react";
 import { Layer } from "react-konva";
 import type { AnnotationData, Point } from "../../types/annotation";
 import { RectShapeView } from "../shapes/RectShapeView";

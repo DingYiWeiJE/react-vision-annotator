@@ -76,7 +76,7 @@ export function useAnnotationEngine(initialAnnotations?: AnnotationData[]): Anno
     if (initialAnnotations?.length) {
       annotationManager.load(initialAnnotations)
     }
-  }, [])
+  }, [initialAnnotations])
 
   const setTool = useCallback((mode: ToolMode) => {
     toolController.setMode(mode)

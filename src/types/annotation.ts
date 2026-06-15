@@ -12,6 +12,7 @@ export interface AnnotationData {
   color: string
   strokeWidth: number
   visible?: boolean
+  error?: boolean
 }
 
 export interface ViewportState {
