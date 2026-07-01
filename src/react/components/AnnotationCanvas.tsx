@@ -360,7 +360,7 @@ const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
     const stageRef = useRef<Konva.Stage>(null);
     const previousToolRef = useRef(currentTool);
 
-    const effectiveCtrlHeld = ctrlHeld || currentTool === ToolMode.MOVE_ANNOTATION;
+    const effectiveCtrlHeld = (ctrlHeld || currentTool === ToolMode.MOVE_ANNOTATION) && !readOnly;
 
     useEffect(() => {
       const previousTool = previousToolRef.current;
