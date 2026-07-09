@@ -1,10 +1,27 @@
 {
   "name": "react-vision-annotator",
   "version": "1.0.0",
-  "description": "React image annotation SDK powered by Konva.js",
+  "description": "一个基于 React + Konva.js 的图像标注库，专门为图像标注场景打造。支持矩形/圆形标注、涂鸦/马赛克、撤销重做、缩放旋转等功能。",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "homepage": "https://dingyiweije.github.io/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DingYiWeiJE/react-vision-annotator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DingYiWeiJE/react-vision-annotator/issues"
+  },
+  "keywords": [
+    "react",
+    "annotation",
+    "image-annotation",
+    "konva",
+    "canvas",
+    "image-labeling",
+    "computer-vision"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
